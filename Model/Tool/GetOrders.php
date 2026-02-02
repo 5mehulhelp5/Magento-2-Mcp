@@ -1,34 +1,47 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\Tool;
 
-use Freento\Mcp\Model\ResourceModel\OrderResource;
-use Freento\Mcp\Model\EntityTool\Schema;
+use Freento\Mcp\Model\EntityTool\AbstractTool;
 use Freento\Mcp\Model\EntityTool\Field;
+use Freento\Mcp\Model\EntityTool\Schema;
+use Freento\Mcp\Model\Helper\DateTimeHelper;
 use Freento\Mcp\Model\Helper\StringHelper;
 use Freento\Mcp\Model\ResourceModel\EntityTool\AbstractResource;
-use Freento\Mcp\Model\EntityTool\AbstractTool;
+use Freento\Mcp\Model\ResourceModel\EntityTool\OrderResource;
 use Freento\Mcp\Model\ToolResultFactory;
 
 class GetOrders extends AbstractTool
 {
-    private OrderResource $orderResource;
-
+    /**
+     * @param OrderResource $orderResource
+     * @param ToolResultFactory $resultFactory
+     * @param StringHelper $stringHelper
+     * @param DateTimeHelper $dateTimeHelper
+     */
     public function __construct(
-        OrderResource $orderResource,
+        private readonly OrderResource $orderResource,
         ToolResultFactory $resultFactory,
-        StringHelper $stringHelper
+        StringHelper $stringHelper,
+        DateTimeHelper $dateTimeHelper
     ) {
-        parent::__construct($resultFactory, $stringHelper);
-        $this->orderResource = $orderResource;
+        parent::__construct($resultFactory, $stringHelper, $dateTimeHelper);
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function getResource(): AbstractResource
     {
         return $this->orderResource;
     }
 
+    /**
+     * @inheritdoc
+     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
+     */
     protected function buildSchema(): Schema
     {
         return new Schema(
@@ -66,6 +79,12 @@ class GetOrders extends AbstractTool
                     type: 'date'
                 ),
                 new Field(
+                    name: 'customer_id',
+                    type: 'integer',
+                    allowGroupBy: true,
+                    description: 'Customer ID (null for guest)'
+                ),
+                new Field(
                     name: 'customer_email',
                     type: 'string',
                     allowGroupBy: true,
@@ -80,13 +99,19 @@ class GetOrders extends AbstractTool
                     sortable: false
                 ),
                 new Field(
-                    name: 'grand_total',
+                    name: 'base_grand_total',
                     type: 'currency',
-                    allowAggregate: true,
-                    description: 'Order grand total amount'
+                    description: 'Order base grand total amount',
+                    allowAggregate: true
+                ),
+                new Field(
+                    name: 'base_currency_code',
+                    type: 'string',
+                    sortable: false
                 ),
                 new Field(
                     name: 'order_currency_code',
+                    type: 'string',
                     sortable: false
                 ),
                 new Field(
@@ -124,6 +149,9 @@ class GetOrders extends AbstractTool
         );
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function getDescriptionLines(): array
     {
         return [
@@ -131,6 +159,9 @@ class GetOrders extends AbstractTool
         ];
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function getExamplePrompts(): array
     {
         return [
@@ -140,5 +171,4 @@ class GetOrders extends AbstractTool
             'List pending orders',
         ];
     }
-
 }

@@ -33,29 +33,60 @@
         </index>
     </table>
 
-    <table name="freento_mcp_user_token" resource="default" engine="innodb" comment="MCP User Tokens">
-        <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true" comment="ID"/>
-        <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="false" comment="Admin User ID"/>
-        <column xsi:type="varchar" name="token_hash" nullable="false" length="255" comment="Token Hash"/>
-        <column xsi:type="int" name="role_id" unsigned="true" nullable="true" comment="Role ID"/>
+    <!-- OAuth 2.0 Tables -->
+    <table name="freento_mcp_oauth_client" resource="default" engine="innodb" comment="MCP OAuth Clients">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="varchar" name="client_id" nullable="false" length="64" comment="Client ID"/>
+        <column xsi:type="text" name="client_secret" nullable="false" comment="Client Secret (encrypted)"/>
+        <column xsi:type="varchar" name="name" nullable="false" length="255" comment="Client Name"/>
+        <column xsi:type="int" name="role_id" unsigned="true" nullable="true" comment="MCP Role ID"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Is Active"/>
+        <column xsi:type="varchar" name="token_hash" nullable="true" length="255" comment="Access Token Hash"/>
+        <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="true" comment="Admin User ID"/>
+        <column xsi:type="varchar" name="otp_hash" nullable="true" length="255" comment="One-Time Password Hash"/>
+        <column xsi:type="timestamp" name="otp_expires_at" nullable="true" comment="OTP Expires At"/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
         <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
-            <column name="id"/>
+            <column name="entity_id"/>
         </constraint>
-        <constraint xsi:type="foreign" referenceId="FK_MCP_USER_TOKEN_ADMIN_USER_ID"
-                    table="freento_mcp_user_token" column="admin_user_id"
-                    referenceTable="admin_user" referenceColumn="user_id"
-                    onDelete="CASCADE"/>
-        <constraint xsi:type="foreign" referenceId="FK_MCP_USER_TOKEN_ROLE_ID"
-                    table="freento_mcp_user_token" column="role_id"
+        <constraint xsi:type="unique" referenceId="UNQ_MCP_OAUTH_CLIENT_ID">
+            <column name="client_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="UNQ_MCP_OAUTH_CLIENT_TOKEN_HASH">
+            <column name="token_hash"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="UNQ_MCP_OAUTH_CLIENT_OTP_HASH">
+            <column name="otp_hash"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="FK_MCP_OAUTH_CLIENT_ROLE_ID"
+                    table="freento_mcp_oauth_client" column="role_id"
                     referenceTable="freento_mcp_acl_role" referenceColumn="role_id"
                     onDelete="SET NULL"/>
-        <constraint xsi:type="unique" referenceId="UNQ_MCP_USER_TOKEN_ADMIN_USER_ID">
-            <column name="admin_user_id"/>
+        <constraint xsi:type="foreign" referenceId="FK_MCP_OAUTH_CLIENT_ADMIN_USER_ID"
+                    table="freento_mcp_oauth_client" column="admin_user_id"
+                    referenceTable="admin_user" referenceColumn="user_id"
+                    onDelete="SET NULL"/>
+    </table>
+
+    <table name="freento_mcp_oauth_code" resource="default" engine="innodb" comment="MCP OAuth Authorization Codes">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="varchar" name="code_hash" nullable="false" length="255" comment="Code Hash"/>
+        <column xsi:type="varchar" name="client_id" nullable="false" length="64" comment="Client ID"/>
+        <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="false" comment="Admin User ID"/>
+        <column xsi:type="varchar" name="state" nullable="true" length="255" comment="State"/>
+        <column xsi:type="varchar" name="code_challenge" nullable="true" length="128" comment="PKCE Code Challenge"/>
+        <column xsi:type="varchar" name="code_challenge_method" nullable="true" length="10" comment="PKCE Challenge Method (S256 or plain)"/>
+        <column xsi:type="timestamp" name="expires_at" nullable="false" comment="Expires At"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
         </constraint>
-        <index referenceId="IDX_MCP_USER_TOKEN_ROLE_ID" indexType="btree">
-            <column name="role_id"/>
+        <constraint xsi:type="unique" referenceId="UNQ_MCP_OAUTH_CODE_HASH">
+            <column name="code_hash"/>
+        </constraint>
+        <index referenceId="IDX_MCP_OAUTH_CODE_CLIENT_ID" indexType="btree">
+            <column name="client_id"/>
         </index>
     </table>
 

@@ -8,6 +8,10 @@ use Freento\Mcp\Exception\ParseErrorException;
 class JsonRpcParser
 {
     /**
+     * Parse request
+     *
+     * @param string $jsonRpcRequest
+     * @return array
      * @throws ParseErrorException
      */
     public function parse(string $jsonRpcRequest): array

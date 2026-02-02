@@ -1,47 +1,63 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Service;
 
 use Freento\Mcp\Api\AclRoleRepositoryInterface;
 use Freento\Mcp\Api\Data\AclRoleInterface;
-use Freento\Mcp\Api\Data\UserTokenInterface;
-use Freento\Mcp\Api\UserTokenRepositoryInterface;
+use Freento\Mcp\Api\Data\OAuthClientInterface;
+use Freento\Mcp\Model\OAuth\ClientFactory;
+use Freento\Mcp\Model\ResourceModel\OAuth\Client as OAuthClientResource;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 class AclValidator
 {
-    private UserTokenRepositoryInterface $userTokenRepository;
-    private AclRoleRepositoryInterface $aclRoleRepository;
-    private TokenGenerator $tokenGenerator;
-
+    /**
+     * @param AclRoleRepositoryInterface $aclRoleRepository
+     * @param TokenGenerator $tokenGenerator
+     * @param OAuthClientResource $oauthClientResource
+     * @param ClientFactory $clientFactory
+     */
     public function __construct(
-        UserTokenRepositoryInterface $userTokenRepository,
-        AclRoleRepositoryInterface $aclRoleRepository,
-        TokenGenerator $tokenGenerator
+        private AclRoleRepositoryInterface $aclRoleRepository,
+        private TokenGenerator $tokenGenerator,
+        private OAuthClientResource $oauthClientResource,
+        private ClientFactory $clientFactory
     ) {
-        $this->userTokenRepository = $userTokenRepository;
-        $this->aclRoleRepository = $aclRoleRepository;
-        $this->tokenGenerator = $tokenGenerator;
     }
 
     /**
-     * Validate token and return user token entity or null
+     * Validate token and return OAuth client or null
+     *
+     * @param string $token
+     * @return OAuthClientInterface|null
      */
-    public function validateToken(string $token): ?UserTokenInterface
+    public function validateToken(string $token): ?OAuthClientInterface
     {
         $tokenHash = $this->tokenGenerator->hash($token);
-        return $this->userTokenRepository->getByTokenHash($tokenHash);
+        $clientData = $this->oauthClientResource->getByTokenHash($tokenHash);
+
+        if ($clientData === null) {
+            return null;
+        }
+
+        $client = $this->clientFactory->create();
+        $client->setData($clientData);
+        return $client;
     }
 
     /**
-     * Check if user can use specific tool
+     * Check if client can use specific tool
+     *
+     * @param OAuthClientInterface $client
+     * @param string $toolName
+     * @return bool
      */
-    public function canUseTool(UserTokenInterface $userToken, string $toolName): bool
+    public function canUseTool(OAuthClientInterface $client, string $toolName): bool
     {
-        $roleId = $userToken->getRoleId();
+        $roleId = $client->getRoleId();
 
-        // No role assigned = no access
         if ($roleId === null) {
             return false;
         }
@@ -52,23 +68,23 @@ class AclValidator
             return false;
         }
 
-        // Access type 'all' = full access
         if ($role->getAccessType() === AclRoleInterface::ACCESS_TYPE_ALL) {
             return true;
         }
 
-        // Access type 'specified' = check role tools
         $allowedTools = $this->aclRoleRepository->getRoleTools($roleId);
         return in_array($toolName, $allowedTools, true);
     }
 
     /**
-     * Get list of allowed tools for user token
-     * @return string[]|null Returns null if user has access to all tools
+     * Get list of allowed tools for OAuth client
+     *
+     * @param OAuthClientInterface $client
+     * @return string[]|null Returns null if client has access to all tools
      */
-    public function getAllowedTools(UserTokenInterface $userToken): ?array
+    public function getAllowedTools(OAuthClientInterface $client): ?array
     {
-        $roleId = $userToken->getRoleId();
+        $roleId = $client->getRoleId();
 
         if ($roleId === null) {
             return [];
@@ -80,7 +96,6 @@ class AclValidator
             return [];
         }
 
-        // Access type 'all' = null means all tools allowed
         if ($role->getAccessType() === AclRoleInterface::ACCESS_TYPE_ALL) {
             return null;
         }

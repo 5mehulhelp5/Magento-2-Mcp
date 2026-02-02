@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\ResourceModel\EntityTool;
@@ -7,6 +8,7 @@ use Freento\Mcp\Model\EntityTool\Schema;
 use Freento\Mcp\Model\EntityTool\ConditionApplier;
 use Freento\Mcp\Model\EntityTool\ListResult;
 use Freento\Mcp\Model\EntityTool\ListResultFactory;
+use Freento\Mcp\Model\Helper\DateTimeHelper;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Select;
 
@@ -68,18 +70,18 @@ use Magento\Framework\DB\Select;
  */
 abstract class AbstractResource
 {
-    protected ResourceConnection $resourceConnection;
-    protected ConditionApplier $conditionApplier;
-    protected ListResultFactory $listResultFactory;
-
+    /**
+     * @param ResourceConnection $resourceConnection
+     * @param ConditionApplier $conditionApplier
+     * @param ListResultFactory $listResultFactory
+     * @param DateTimeHelper $dateTimeHelper
+     */
     public function __construct(
-        ResourceConnection $resourceConnection,
-        ConditionApplier $conditionApplier,
-        ListResultFactory $listResultFactory
+        protected readonly ResourceConnection $resourceConnection,
+        protected readonly ConditionApplier $conditionApplier,
+        protected readonly ListResultFactory $listResultFactory,
+        protected readonly DateTimeHelper $dateTimeHelper
     ) {
-        $this->resourceConnection = $resourceConnection;
-        $this->conditionApplier = $conditionApplier;
-        $this->listResultFactory = $listResultFactory;
     }
 
     /**
@@ -122,6 +124,9 @@ abstract class AbstractResource
         if ($aggregateFunction !== '' && $groupBy !== '') {
             $select->group($this->getGroupByExpression($schema, $groupBy));
         }
+
+        // Hook for subclasses to add JOINs
+        $this->applyRequiredJoins($select, $schema, !$aggregateField);
 
         // Apply WHERE conditions from filters
         $appliedFilters = $this->applyFilters($select, $schema, $filters);
@@ -187,6 +192,9 @@ abstract class AbstractResource
     /**
      * Get GROUP BY expression for field or time period
      *
+     * For time-based grouping (month, day), dates are converted from UTC
+     * to store timezone using CONVERT_TZ before grouping.
+     *
      * @param Schema $schema Entity schema
      * @param string $groupBy Field name or period (month, day)
      * @return \Zend_Db_Expr|string
@@ -195,12 +203,14 @@ abstract class AbstractResource
     {
         $tableAlias = $schema->getTableAlias();
 
-        // Time-based grouping
+        // Time-based grouping with timezone conversion
         if ($groupBy === 'month') {
-            return new \Zend_Db_Expr("DATE_FORMAT({$tableAlias}.created_at, '%Y-%m')");
+            $convertedDate = $this->getSqlConvertTzExpr("{$tableAlias}.created_at");
+            return new \Zend_Db_Expr("DATE_FORMAT({$convertedDate}, '%Y-%m')");
         }
         if ($groupBy === 'day') {
-            return new \Zend_Db_Expr("DATE({$tableAlias}.created_at)");
+            $convertedDate = $this->getSqlConvertTzExpr("{$tableAlias}.created_at");
+            return new \Zend_Db_Expr("DATE({$convertedDate})");
         }
 
         // Field-based grouping
@@ -210,6 +220,22 @@ abstract class AbstractResource
         }
 
         return "{$tableAlias}.{$groupBy}";
+    }
+
+    /**
+     * Get SQL expression for converting UTC date column to store timezone
+     *
+     * Uses MySQL CONVERT_TZ function.
+     * Note: Uses offset format (+03:00) which works without mysql timezone tables,
+     * but doesn't account for DST changes.
+     *
+     * @param string $dateColumn Column name (e.g., 'main_table.created_at')
+     * @return string SQL expression with CONVERT_TZ
+     */
+    protected function getSqlConvertTzExpr(string $dateColumn): string
+    {
+        $offset = $this->dateTimeHelper->getUtcOffset();
+        return "CONVERT_TZ({$dateColumn}, '+00:00', '{$offset}')";
     }
 
     /**
@@ -223,10 +249,7 @@ abstract class AbstractResource
         $connection = $this->resourceConnection->getConnection();
         $table = $this->resourceConnection->getTableName($schema->getTable());
 
-        $select = $connection->select()->from([$schema->getTableAlias() => $table]);
-
-        // Hook for subclasses to add JOINs
-        $this->applyRequiredJoins($select, $schema);
+        $select = $connection->select()->from([$schema->getTableAlias() => $table], []);
 
         return $select;
     }
@@ -241,6 +264,7 @@ abstract class AbstractResource
      * @param Schema $schema Entity schema
      * @param array $arguments Original arguments (for conditional processing)
      * @return array Database rows
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     protected function fetchAll(Select $select, Schema $schema, array $arguments): array
     {
@@ -278,6 +302,11 @@ abstract class AbstractResource
         $appliedFilters = [];
 
         foreach ($schema->getFilterableFields() as $field) {
+            // Filter can not be applied on field without db column
+            if ($field->getColumn() === false) {
+                continue;
+            }
+
             $name = $field->getName();
 
             // Skip if filter not provided or empty
@@ -321,8 +350,10 @@ abstract class AbstractResource
      *
      * @param Select $select Database select to modify
      * @param Schema $schema Entity schema
+     * @param bool $addJoinedFieldsToSelect
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    protected function applyRequiredJoins(Select $select, Schema $schema): void
+    protected function applyRequiredJoins(Select $select, Schema $schema, bool $addJoinedFieldsToSelect = true): void
     {
         // Default: no joins needed
     }

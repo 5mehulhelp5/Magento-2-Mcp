@@ -1,10 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\EntityTool;
 
 use Freento\Mcp\Api\ToolInterface;
 use Freento\Mcp\Api\ToolResultInterface;
+use Freento\Mcp\Model\Helper\DateTimeHelper;
 use Freento\Mcp\Model\Helper\StringHelper;
 use Freento\Mcp\Model\ResourceModel\EntityTool\AbstractResource;
 use Freento\Mcp\Model\ToolResultFactory;
@@ -66,18 +68,19 @@ use Freento\Mcp\Model\ToolResultFactory;
  */
 abstract class AbstractTool implements ToolInterface
 {
-    protected ToolResultFactory $resultFactory;
-    protected StringHelper $stringHelper;
-
     /** @var Schema|null Cached schema instance */
     private ?Schema $schema = null;
 
+    /**
+     * @param ToolResultFactory $resultFactory
+     * @param StringHelper $stringHelper
+     * @param DateTimeHelper $dateTimeHelper
+     */
     public function __construct(
-        ToolResultFactory $resultFactory,
-        StringHelper $stringHelper
+        private readonly ToolResultFactory $resultFactory,
+        private readonly StringHelper $stringHelper,
+        private readonly DateTimeHelper $dateTimeHelper
     ) {
-        $this->resultFactory = $resultFactory;
-        $this->stringHelper = $stringHelper;
     }
 
     /**
@@ -345,7 +348,8 @@ abstract class AbstractTool implements ToolInterface
         // Add pagination parameters
         $properties['limit'] = [
             'type' => 'integer',
-            'description' => "Maximum items to return (default: {$schema->getDefaultLimit()}, max: {$schema->getMaxLimit()})",
+            'description' => "Maximum items to return"
+                . " (default: {$schema->getDefaultLimit()}, max: {$schema->getMaxLimit()})",
             'default' => $schema->getDefaultLimit(),
             'maximum' => $schema->getMaxLimit()
         ];
@@ -613,6 +617,7 @@ abstract class AbstractTool implements ToolInterface
      * Format value based on field type
      *
      * Applies type-specific formatting:
+     * - date/datetime: converts from UTC to store timezone
      * - currency: 2 decimal places (e.g., 99.99)
      * - numeric/float: float cast
      * - integer: int cast
@@ -630,6 +635,11 @@ abstract class AbstractTool implements ToolInterface
     {
         if ($value === null) {
             return '';
+        }
+
+        // Handle date type - convert from UTC to local timezone
+        if ($field !== null && in_array($field->getType(), ['date', 'datetime'])) {
+            return $this->dateTimeHelper->convertUtcToLocal((string)$value);
         }
 
         // If value is not numeric, return as string (preserves transformed values)

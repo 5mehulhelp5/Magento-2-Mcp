@@ -13,14 +13,8 @@
     <preference for="Freento\Mcp\Api\Data\AclRoleInterface"
                 type="Freento\Mcp\Model\AclRole"/>
 
-    <preference for="Freento\Mcp\Api\Data\UserTokenInterface"
-                type="Freento\Mcp\Model\UserToken"/>
-
     <preference for="Freento\Mcp\Api\AclRoleRepositoryInterface"
                 type="Freento\Mcp\Model\AclRoleRepository"/>
-
-    <preference for="Freento\Mcp\Api\UserTokenRepositoryInterface"
-                type="Freento\Mcp\Model\UserTokenRepository"/>
 
     <!-- Tool Registry with all tools -->
     <type name="Freento\Mcp\Model\ToolRegistry">
@@ -31,11 +25,15 @@
                 <item name="get_order_items" xsi:type="object">Freento\Mcp\Model\Tool\GetOrderItems</item>
                 <item name="get_quotes" xsi:type="object">Freento\Mcp\Model\Tool\GetQuotes</item>
                 <item name="get_quote_items" xsi:type="object">Freento\Mcp\Model\Tool\GetQuoteItems</item>
+                <item name="get_creditmemos" xsi:type="object">Freento\Mcp\Model\Tool\GetCreditmemos</item>
                 <!-- Catalog -->
                 <item name="get_products" xsi:type="object">Freento\Mcp\Model\Tool\GetProducts</item>
                 <item name="get_stock_single_stock" xsi:type="object">Freento\Mcp\Model\Tool\GetStockSingleStock</item>
                 <!-- Customer -->
                 <item name="get_customers" xsi:type="object">Freento\Mcp\Model\Tool\GetCustomers</item>
+                <!-- Marketing -->
+                <item name="get_cart_price_rules" xsi:type="object">Freento\Mcp\Model\Tool\GetCartPriceRules</item>
+                <item name="get_coupons" xsi:type="object">Freento\Mcp\Model\Tool\GetCoupons</item>
                 <!-- Admin -->
                 <item name="get_admins" xsi:type="object">Freento\Mcp\Model\Tool\GetAdmins</item>
                 <item name="get_locked_admins" xsi:type="object">Freento\Mcp\Model\Tool\GetLockedAdmins</item>
@@ -57,7 +55,6 @@
         <arguments>
             <argument name="collections" xsi:type="array">
                 <item name="freento_mcp_aclrole_listing_data_source" xsi:type="string">Freento\Mcp\Model\ResourceModel\AclRole\Collection</item>
-                <item name="freento_mcp_usertoken_listing_data_source" xsi:type="string">Freento\Mcp\Model\ResourceModel\UserToken\Grid\Collection</item>
             </argument>
         </arguments>
     </type>

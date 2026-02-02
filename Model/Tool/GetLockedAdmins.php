@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\Tool;
@@ -17,25 +18,29 @@ use Magento\Framework\Stdlib\DateTime\DateTime;
  */
 class GetLockedAdmins implements ToolInterface
 {
-    private ResourceConnection $resourceConnection;
-    private ToolResultFactory $resultFactory;
-    private DateTime $dateTime;
-
+    /**
+     * @param ResourceConnection $resourceConnection
+     * @param ToolResultFactory $resultFactory
+     * @param DateTime $dateTime
+     */
     public function __construct(
-        ResourceConnection $resourceConnection,
-        ToolResultFactory $resultFactory,
-        DateTime $dateTime
+        private readonly ResourceConnection $resourceConnection,
+        private readonly ToolResultFactory $resultFactory,
+        private readonly DateTime $dateTime
     ) {
-        $this->resourceConnection = $resourceConnection;
-        $this->resultFactory = $resultFactory;
-        $this->dateTime = $dateTime;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getName(): string
     {
         return 'get_locked_admins';
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getDescription(): string
     {
         return 'Get list of locked admin accounts from Magento store.
@@ -59,6 +64,9 @@ Example prompts:
 - "Which admin accounts are currently locked?"';
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getInputSchema(): array
     {
         return [
@@ -66,7 +74,8 @@ Example prompts:
             'properties' => [
                 'include_expired' => [
                     'type' => 'boolean',
-                    'description' => 'Include accounts with expired locks or any failed attempts history (default: false, shows only currently locked)'
+                    'description' => 'Include accounts with expired locks or any failed attempts history'
+                                    . ' (default: false, shows only currently locked)'
                 ],
                 'email' => [
                     'type' => 'string',
@@ -90,6 +99,9 @@ Example prompts:
         ];
     }
 
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): ToolResultInterface
     {
         $connection = $this->resourceConnection->getConnection();
@@ -163,6 +175,15 @@ Example prompts:
         return $this->resultFactory->createText($result);
     }
 
+    /**
+     * Format Locked Admins
+     *
+     * @param array $admins
+     * @param array $appliedFilters
+     * @param string $currentTime
+     * @param bool $includeExpired
+     * @return string
+     */
     private function formatLockedAdmins(
         array $admins,
         array $appliedFilters,
@@ -178,6 +199,7 @@ Example prompts:
             if (!empty($appliedFilters)) {
                 $result .= "\nFilters applied: " . implode(', ', $appliedFilters);
             }
+
             return $result;
         }
 
@@ -202,40 +224,7 @@ Example prompts:
             $lines[] = "Found {$currentlyLocked} currently locked admin account(s):";
         }
         $lines[] = "";
-
-        foreach ($admins as $admin) {
-            $name = trim(($admin['firstname'] ?? '') . ' ' . ($admin['lastname'] ?? ''));
-            if (empty($name)) {
-                $name = 'N/A';
-            }
-
-            $accountStatus = $admin['is_active'] ? 'Active' : 'Inactive';
-            $failuresNum = (int)($admin['failures_num'] ?? 0);
-            $firstFailure = $admin['first_failure'] ?: 'N/A';
-            $lockExpires = $admin['lock_expires'] ?: 'N/A';
-
-            $isCurrentlyLocked = !empty($admin['lock_expires']) && $admin['lock_expires'] > $currentTime;
-            if ($isCurrentlyLocked) {
-                $lockStatus = "LOCKED (expires: {$lockExpires})";
-            } elseif (!empty($admin['lock_expires'])) {
-                $lockStatus = "Lock expired: {$lockExpires}";
-            } elseif ($failuresNum > 0) {
-                $lockStatus = "Has failed attempts (not locked)";
-            } else {
-                $lockStatus = "Cleared";
-            }
-
-            $lines[] = "Admin ID: {$admin['user_id']}";
-            $lines[] = "  Username: {$admin['username']}";
-            $lines[] = "  Name: {$name}";
-            $lines[] = "  Email: {$admin['email']}";
-            $lines[] = "  Account Status: {$accountStatus}";
-            $lines[] = "  Lock Status: {$lockStatus}";
-            $lines[] = "  Failed Attempts: {$failuresNum}";
-            $lines[] = "  First Failure: {$firstFailure}";
-            $lines[] = "";
-        }
-
+        $lines += $this->getAdminsDataLines($admins, $currentTime);
         if (!empty($appliedFilters)) {
             $lines[] = "Filters applied: " . implode(', ', $appliedFilters);
         }
@@ -244,5 +233,65 @@ Example prompts:
         $lines[] = "Note: To unlock an admin, reset failures_num to 0 and clear lock_expires in admin_user table.";
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Get Admins Data Lines
+     *
+     * @param array $admins
+     * @param string $currentTime
+     * @return array
+     */
+    private function getAdminsDataLines(array $admins, string $currentTime): array
+    {
+        $lines = [];
+        foreach ($admins as $admin) {
+            $lines += $this->getAdminDataLines($admin, $currentTime);
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Get Admin Data Lines
+     *
+     * @param array $admin
+     * @param string $currentTime
+     * @return array
+     */
+    private function getAdminDataLines(array $admin, string $currentTime): array
+    {
+        $name = trim(($admin['firstname'] ?? '') . ' ' . ($admin['lastname'] ?? ''));
+        if (empty($name)) {
+            $name = 'N/A';
+        }
+
+        $accountStatus = $admin['is_active'] ? 'Active' : 'Inactive';
+        $failuresNum = (int)($admin['failures_num'] ?? 0);
+        $firstFailure = $admin['first_failure'] ?: 'N/A';
+        $lockExpires = $admin['lock_expires'] ?: 'N/A';
+
+        $isCurrentlyLocked = !empty($admin['lock_expires']) && $admin['lock_expires'] > $currentTime;
+        if ($isCurrentlyLocked) {
+            $lockStatus = "LOCKED (expires: {$lockExpires})";
+        } elseif (!empty($admin['lock_expires'])) {
+            $lockStatus = "Lock expired: {$lockExpires}";
+        } elseif ($failuresNum > 0) {
+            $lockStatus = "Has failed attempts (not locked)";
+        } else {
+            $lockStatus = "Cleared";
+        }
+
+        $lines = [];
+        $lines[] = "Admin ID: {$admin['user_id']}";
+        $lines[] = "  Username: {$admin['username']}";
+        $lines[] = "  Name: {$name}";
+        $lines[] = "  Email: {$admin['email']}";
+        $lines[] = "  Account Status: {$accountStatus}";
+        $lines[] = "  Lock Status: {$lockStatus}";
+        $lines[] = "  Failed Attempts: {$failuresNum}";
+        $lines[] = "  First Failure: {$firstFailure}";
+        $lines[] = "";
+        return $lines;
     }
 }

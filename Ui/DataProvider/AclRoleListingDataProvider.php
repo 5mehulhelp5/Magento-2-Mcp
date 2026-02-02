@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Ui\DataProvider;
@@ -9,30 +10,39 @@ use Magento\Ui\DataProvider\AbstractDataProvider;
 
 class AclRoleListingDataProvider extends AbstractDataProvider
 {
-    private ResourceConnection $resourceConnection;
-
+    /**
+     * @param string $name
+     * @param string $primaryFieldName
+     * @param string $requestFieldName
+     * @param CollectionFactory $collectionFactory
+     * @param ResourceConnection $resourceConnection
+     * @param array $meta
+     * @param array $data
+     */
     public function __construct(
         $name,
         $primaryFieldName,
         $requestFieldName,
         CollectionFactory $collectionFactory,
-        ResourceConnection $resourceConnection,
+        private readonly ResourceConnection $resourceConnection,
         array $meta = [],
         array $data = []
     ) {
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
         $this->collection = $collectionFactory->create();
-        $this->resourceConnection = $resourceConnection;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getData(): array
     {
         $data = parent::getData();
 
-        // Add tools_count and users_count for each role
+        // Add tools_count and clients_count for each role
         $connection = $this->resourceConnection->getConnection();
         $toolsTable = $this->resourceConnection->getTableName('freento_mcp_acl_role_tool');
-        $tokensTable = $this->resourceConnection->getTableName('freento_mcp_user_token');
+        $clientsTable = $this->resourceConnection->getTableName('freento_mcp_oauth_client');
 
         foreach ($data['items'] as &$item) {
             $roleId = $item['role_id'];
@@ -47,10 +57,11 @@ class AclRoleListingDataProvider extends AbstractDataProvider
                 $item['tools_count'] = (int)$connection->fetchOne($select);
             }
 
-            // Users count
+            // Clients count (OAuth clients with this role that have tokens)
             $select = $connection->select()
-                ->from($tokensTable, ['COUNT(*)'])
-                ->where('role_id = ?', $roleId);
+                ->from($clientsTable, ['COUNT(*)'])
+                ->where('role_id = ?', $roleId)
+                ->where('token_hash IS NOT NULL');
             $item['users_count'] = (int)$connection->fetchOne($select);
         }
 

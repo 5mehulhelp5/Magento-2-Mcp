@@ -8,14 +8,19 @@ use Magento\Framework\Phrase;
 
 class ToolNotFoundException extends LocalizedException
 {
-    private string $toolName;
-
-    public function __construct(string $toolName)
+    /**
+     * @param string $toolName
+     */
+    public function __construct(private readonly string $toolName)
     {
-        $this->toolName = $toolName;
         parent::__construct(new Phrase('Tool not found: %1', [$toolName]));
     }
 
+    /**
+     * Get tool name
+     *
+     * @return string
+     */
     public function getToolName(): string
     {
         return $this->toolName;

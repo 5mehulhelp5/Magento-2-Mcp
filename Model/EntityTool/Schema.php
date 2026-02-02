@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\EntityTool;
@@ -100,6 +101,9 @@ class Schema
 
     /**
      * Check if field exists in schema
+     *
+     * @param string $name
+     * @return bool
      */
     public function hasField(string $name): bool
     {
@@ -108,6 +112,8 @@ class Schema
 
     /**
      * Get default pagination limit
+     *
+     * @return int
      */
     public function getDefaultLimit(): int
     {
@@ -116,6 +122,8 @@ class Schema
 
     /**
      * Get maximum allowed pagination limit
+     *
+     * @return int
      */
     public function getMaxLimit(): int
     {
@@ -161,7 +169,7 @@ class Schema
      */
     public function getFilterableFields(): array
     {
-        return array_filter($this->fields, fn(Field $f) => $f->isFilterable());
+        return array_filter($this->fields, fn (Field $f) => $f->isFilterable());
     }
 
     /**
@@ -204,7 +212,7 @@ class Schema
      */
     public function getAggregateFields(): array
     {
-        return array_filter($this->fields, fn(Field $f) => $f->allowsAggregate());
+        return array_filter($this->fields, fn (Field $f) => $f->allowsAggregate());
     }
 
     /**
@@ -235,6 +243,9 @@ class Schema
 
     /**
      * Check if GROUP BY option is valid
+     *
+     * @param string $groupBy
+     * @return bool
      */
     public function hasGroupByOption(string $groupBy): bool
     {
@@ -313,7 +324,7 @@ class Schema
     {
         return array_filter(
             $this->fields,
-            fn(Field $f) => $f->allowsAggregate() && $f->isSortable()
+            fn (Field $f) => $f->allowsAggregate() && $f->isSortable()
         );
     }
 

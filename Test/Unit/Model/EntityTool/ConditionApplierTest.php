@@ -10,9 +10,19 @@ use PHPUnit\Framework\TestCase;
 
 class ConditionApplierTest extends TestCase
 {
+    /**
+     * @var ConditionApplier
+     */
     private ConditionApplier $subject;
+
+    /**
+     * @var Select|MockObject|(Select&object&MockObject)|(Select&MockObject)|(object&MockObject)
+     */
     private Select|MockObject $selectMock;
 
+    /**
+     * @inheritDoc
+     */
     protected function setUp(): void
     {
         $this->subject = new ConditionApplier();

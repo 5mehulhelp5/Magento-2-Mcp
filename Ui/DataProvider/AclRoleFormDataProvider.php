@@ -10,26 +10,38 @@ use Magento\Ui\DataProvider\AbstractDataProvider;
 
 class AclRoleFormDataProvider extends AbstractDataProvider
 {
-    private AclRoleRepositoryInterface $roleRepository;
-    private RequestInterface $request;
+    /**
+     * @var array|null
+     */
     private ?array $loadedData = null;
 
+    /**
+     * @param string $name
+     * @param string $primaryFieldName
+     * @param string $requestFieldName
+     * @param CollectionFactory $collectionFactory
+     * @param AclRoleRepositoryInterface $roleRepository
+     * @param RequestInterface $request
+     * @param array $meta
+     * @param array $data
+     */
     public function __construct(
         $name,
         $primaryFieldName,
         $requestFieldName,
         CollectionFactory $collectionFactory,
-        AclRoleRepositoryInterface $roleRepository,
-        RequestInterface $request,
+        private readonly AclRoleRepositoryInterface $roleRepository,
+        private readonly RequestInterface $request,
         array $meta = [],
         array $data = []
     ) {
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
         $this->collection = $collectionFactory->create();
-        $this->roleRepository = $roleRepository;
-        $this->request = $request;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getData(): array
     {
         if ($this->loadedData !== null) {

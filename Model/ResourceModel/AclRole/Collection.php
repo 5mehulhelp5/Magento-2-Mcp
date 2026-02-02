@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\ResourceModel\AclRole;
@@ -9,8 +10,15 @@ use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
 
 class Collection extends AbstractCollection
 {
+    /**
+     * @inheritDoc
+     * @var string
+     */
     protected $_idFieldName = 'role_id';
 
+    /**
+     * @inheritDoc
+     */
     protected function _construct(): void
     {
         $this->_init(AclRole::class, AclRoleResource::class);

@@ -1,9 +1,10 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model;
 
-use Freento\Mcp\Api\Data\UserTokenInterface;
+use Freento\Mcp\Api\Data\OAuthClientInterface;
 use Freento\Mcp\Exception\AccessDeniedException;
 use Freento\Mcp\Exception\MethodNotFoundException;
 use Freento\Mcp\Exception\ToolNotFoundException;
@@ -11,35 +12,45 @@ use Freento\Mcp\Service\AclValidator;
 
 class Router
 {
-    private ToolRegistry $toolRegistry;
-    private AclValidator $aclValidator;
-    private string $serverInstructions;
-
+    /**
+     * @param ToolRegistry $toolRegistry
+     * @param AclValidator $aclValidator
+     * @param string $serverInstructions
+     */
     public function __construct(
-        ToolRegistry $toolRegistry,
-        AclValidator $aclValidator,
-        string $serverInstructions = ''
+        private readonly ToolRegistry $toolRegistry,
+        private readonly AclValidator $aclValidator,
+        private readonly string $serverInstructions = ''
     ) {
-        $this->toolRegistry = $toolRegistry;
-        $this->aclValidator = $aclValidator;
-        $this->serverInstructions = $serverInstructions;
     }
 
     /**
+     * Dispatch specific action
+     *
+     * @param string $method
+     * @param array $params
+     * @param OAuthClientInterface $client
+     * @return array
      * @throws MethodNotFoundException
      * @throws ToolNotFoundException
      * @throws AccessDeniedException
      */
-    public function dispatch(string $method, array $params, UserTokenInterface $userToken): array
+    public function dispatch(string $method, array $params, OAuthClientInterface $client): array
     {
         return match ($method) {
             'initialize' => $this->handleInitialize(),
-            'tools/list' => $this->handleToolsList($userToken),
-            'tools/call' => $this->handleToolsCall($params, $userToken),
+            'notifications/initialized' => [], // Notification - no response needed
+            'tools/list' => $this->handleToolsList($client),
+            'tools/call' => $this->handleToolsCall($params, $client),
             default => throw new MethodNotFoundException($method)
         };
     }
 
+    /**
+     * Handle initialize
+     *
+     * @return array
+     */
     private function handleInitialize(): array
     {
         $result = [
@@ -61,13 +72,19 @@ class Router
         return $result;
     }
 
-    private function handleToolsList(UserTokenInterface $userToken): array
+    /**
+     * Handle tolls list
+     *
+     * @param OAuthClientInterface $client
+     * @return array
+     */
+    private function handleToolsList(OAuthClientInterface $client): array
     {
-        $allowedTools = $this->aclValidator->getAllowedTools($userToken);
+        $allowedTools = $this->aclValidator->getAllowedTools($client);
         $tools = [];
 
         foreach ($this->toolRegistry->getAll() as $tool) {
-            // If allowedTools is null, user has access to all tools
+            // If allowedTools is null, client has access to all tools
             // Otherwise, filter by allowed tool names
             if ($allowedTools === null || in_array($tool->getName(), $allowedTools, true)) {
                 $tools[] = [
@@ -82,10 +99,15 @@ class Router
     }
 
     /**
+     * Handle tool call
+     *
+     * @param array $params
+     * @param OAuthClientInterface $client
+     * @return array
      * @throws ToolNotFoundException
      * @throws AccessDeniedException
      */
-    private function handleToolsCall(array $params, UserTokenInterface $userToken): array
+    private function handleToolsCall(array $params, OAuthClientInterface $client): array
     {
         $toolName = $params['name'] ?? '';
         $arguments = $params['arguments'] ?? [];
@@ -97,7 +119,7 @@ class Router
         }
 
         // Check ACL permission for the tool
-        if (!$this->aclValidator->canUseTool($userToken, $toolName)) {
+        if (!$this->aclValidator->canUseTool($client, $toolName)) {
             throw new AccessDeniedException($toolName);
         }
 

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Ui\Component\Form;
@@ -8,13 +9,16 @@ use Magento\Framework\Data\OptionSourceInterface;
 
 class ToolsOptions implements OptionSourceInterface
 {
-    private ToolRegistry $toolRegistry;
-
-    public function __construct(ToolRegistry $toolRegistry)
+    /**
+     * @param ToolRegistry $toolRegistry
+     */
+    public function __construct(private readonly ToolRegistry $toolRegistry)
     {
-        $this->toolRegistry = $toolRegistry;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function toOptionArray(): array
     {
         $options = [];
@@ -45,12 +49,16 @@ class ToolsOptions implements OptionSourceInterface
         return $options;
     }
 
+    /**
+     * Get module name
+     *
+     * @param object $tool
+     * @return string
+     */
     private function getModuleName(object $tool): string
     {
-        $className = get_class($tool);
-        if (preg_match('/^Freento\\\\(Mcp[A-Za-z]+)\\\\/', $className, $matches)) {
-            return $matches[1];
-        }
-        return 'Other';
+        $parts = explode('\\', get_class($tool));
+
+        return isset($parts[0], $parts[1]) ? $parts[0] . '_' . $parts[1] : 'Other';
     }
 }

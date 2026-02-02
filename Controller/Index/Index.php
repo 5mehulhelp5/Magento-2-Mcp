@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Controller\Index;
@@ -14,36 +15,43 @@ use Magento\Framework\Controller\Result\JsonFactory;
 
 class Index implements HttpPostActionInterface, CsrfAwareActionInterface
 {
-    private McpServerInterface $mcpServer;
-    private RequestInterface $request;
-    private JsonFactory $jsonFactory;
-    private AclValidator $aclValidator;
-    private ResponseBuilder $responseBuilder;
-
+    /**
+     * @param McpServerInterface $mcpServer
+     * @param RequestInterface $request
+     * @param JsonFactory $jsonFactory
+     * @param AclValidator $aclValidator
+     * @param ResponseBuilder $responseBuilder
+     */
     public function __construct(
-        McpServerInterface $mcpServer,
-        RequestInterface $request,
-        JsonFactory $jsonFactory,
-        AclValidator $aclValidator,
-        ResponseBuilder $responseBuilder
+        private readonly McpServerInterface $mcpServer,
+        private readonly RequestInterface $request,
+        private readonly JsonFactory $jsonFactory,
+        private readonly AclValidator $aclValidator,
+        private readonly ResponseBuilder $responseBuilder
     ) {
-        $this->mcpServer = $mcpServer;
-        $this->request = $request;
-        $this->jsonFactory = $jsonFactory;
-        $this->aclValidator = $aclValidator;
-        $this->responseBuilder = $responseBuilder;
     }
 
+    /**
+     * @inheritDoc
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     */
     public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
     {
         return null;
     }
 
+    /**
+     * @inheritDoc
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     */
     public function validateForCsrf(RequestInterface $request): ?bool
     {
         return true;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function execute()
     {
         // Extract Bearer token from Authorization header
@@ -63,9 +71,9 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
             return $this->jsonFactory->create()->setData($response);
         }
 
-        // Check if user has a role assigned
+        // Check if OAuth client has a role assigned
         if ($userToken->getRoleId() === null) {
-            $response = $this->responseBuilder->error(null, -32002, 'No role assigned to this token');
+            $response = $this->responseBuilder->error(null, -32002, 'No role assigned to this client');
             return $this->jsonFactory->create()->setData($response);
         }
 
@@ -76,6 +84,12 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
             ->setData($response);
     }
 
+    /**
+     * Extract bearer token
+     *
+     * @param string|null $authHeader
+     * @return string|null
+     */
     private function extractBearerToken(?string $authHeader): ?string
     {
         if (!$authHeader) {

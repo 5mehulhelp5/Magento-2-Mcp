@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Block\Adminhtml\AclRole\Edit;
@@ -7,6 +8,9 @@ use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
 class SaveButton implements ButtonProviderInterface
 {
+    /**
+     * @inheritDoc
+     */
     public function getButtonData(): array
     {
         return [

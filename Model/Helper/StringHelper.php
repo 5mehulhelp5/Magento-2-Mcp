@@ -1,10 +1,17 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\Helper;
 
 class StringHelper
 {
+    /**
+     * Pluralize word
+     *
+     * @param string $word
+     * @return string
+     */
     public function pluralize(string $word): string
     {
         if (empty($word)) {

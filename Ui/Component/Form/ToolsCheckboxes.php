@@ -8,18 +8,24 @@ use Magento\Ui\Component\Container;
 
 class ToolsCheckboxes extends Container
 {
-    private ToolsOptions $toolsOptions;
-
+    /**
+     * @param ContextInterface $context
+     * @param ToolsOptions $toolsOptions
+     * @param array $components
+     * @param array $data
+     */
     public function __construct(
         ContextInterface $context,
-        ToolsOptions $toolsOptions,
+        private readonly ToolsOptions $toolsOptions,
         array $components = [],
         array $data = []
     ) {
         parent::__construct($context, $components, $data);
-        $this->toolsOptions = $toolsOptions;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function prepare(): void
     {
         $config = $this->getData('config');

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model;
@@ -8,24 +9,26 @@ use Freento\Mcp\Api\ToolInterface;
 class ToolRegistry
 {
     /**
-     * @var ToolInterface[]
-     */
-    private array $tools;
-
-    /**
      * @param ToolInterface[] $tools
      */
-    public function __construct(array $tools = [])
+    public function __construct(private array $tools = [])
     {
-        $this->tools = $tools;
     }
 
+    /**
+     * Get tool by name
+     *
+     * @param string $name
+     * @return ToolInterface|null
+     */
     public function get(string $name): ?ToolInterface
     {
         return $this->tools[$name] ?? null;
     }
 
     /**
+     * Get all
+     *
      * @return ToolInterface[]
      */
     public function getAll(): array

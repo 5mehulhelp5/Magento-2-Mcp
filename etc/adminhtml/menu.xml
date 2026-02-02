@@ -12,17 +12,17 @@
         <add id="Freento_Mcp::acl_rules"
              title="ACL Rules"
              module="Freento_Mcp"
-             sortOrder="10"
+             sortOrder="20"
              parent="Freento_Mcp::mcp"
              action="freento_mcp/aclrole/index"
              resource="Freento_Mcp::acl_rules"/>
 
-        <add id="Freento_Mcp::user_tokens"
-             title="User Tokens and Permissions"
+        <add id="Freento_Mcp::oauth_clients"
+             title="AI MCP Clients"
              module="Freento_Mcp"
-             sortOrder="20"
+             sortOrder="30"
              parent="Freento_Mcp::mcp"
-             action="freento_mcp/usertoken/index"
-             resource="Freento_Mcp::user_tokens"/>
+             action="freento_mcp/oauthclient/index"
+             resource="Freento_Mcp::oauth_clients"/>
     </menu>
 </config>

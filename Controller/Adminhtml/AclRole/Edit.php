@@ -6,26 +6,31 @@ namespace Freento\Mcp\Controller\Adminhtml\AclRole;
 use Freento\Mcp\Api\AclRoleRepositoryInterface;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\View\Result\PageFactory;
 
-class Edit extends Action
+class Edit extends Action implements HttpGetActionInterface
 {
     public const ADMIN_RESOURCE = 'Freento_McpServer::acl_rules';
 
-    private PageFactory $resultPageFactory;
-    private AclRoleRepositoryInterface $roleRepository;
-
+    /**
+     * @param Context $context
+     * @param PageFactory $resultPageFactory
+     * @param AclRoleRepositoryInterface $roleRepository
+     */
     public function __construct(
         Context $context,
-        PageFactory $resultPageFactory,
-        AclRoleRepositoryInterface $roleRepository
+        private readonly PageFactory $resultPageFactory,
+        private readonly AclRoleRepositoryInterface $roleRepository
     ) {
         parent::__construct($context);
-        $this->resultPageFactory = $resultPageFactory;
-        $this->roleRepository = $roleRepository;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function execute()
     {
         $roleId = (int)$this->getRequest()->getParam('role_id');

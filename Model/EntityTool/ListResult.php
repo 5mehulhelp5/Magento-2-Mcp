@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\EntityTool;
@@ -30,8 +31,8 @@ namespace Freento\Mcp\Model\EntityTool;
 class ListResult
 {
     /**
-     * @param array<int, array<string, mixed>> $rows Query result rows
-     * @param string[] $appliedFilters Human-readable filter descriptions
+     * @param array  $rows           Query result rows
+     * @param array  $appliedFilters Human-readable filter descriptions
      */
     public function __construct(
         private array $rows,

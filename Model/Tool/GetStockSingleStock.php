@@ -1,39 +1,54 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\Tool;
 
-use Freento\Mcp\Model\ResourceModel\StockResource;
-use Freento\Mcp\Model\EntityTool\Schema;
+use Freento\Mcp\Model\EntityTool\AbstractTool;
 use Freento\Mcp\Model\EntityTool\Field;
+use Freento\Mcp\Model\EntityTool\Schema;
+use Freento\Mcp\Model\Helper\DateTimeHelper;
 use Freento\Mcp\Model\Helper\StringHelper;
 use Freento\Mcp\Model\ResourceModel\EntityTool\AbstractResource;
-use Freento\Mcp\Model\EntityTool\AbstractTool;
+use Freento\Mcp\Model\ResourceModel\EntityTool\StockResource;
 use Freento\Mcp\Model\ToolResultFactory;
 
 class GetStockSingleStock extends AbstractTool
 {
-    private StockResource $stockResource;
-
+    /**
+     * @param StockResource $stockResource
+     * @param ToolResultFactory $resultFactory
+     * @param StringHelper $stringHelper
+     * @param DateTimeHelper $dateTimeHelper
+     */
     public function __construct(
-        StockResource $stockResource,
+        private readonly StockResource $stockResource,
         ToolResultFactory $resultFactory,
-        StringHelper $stringHelper
+        StringHelper $stringHelper,
+        DateTimeHelper $dateTimeHelper
     ) {
-        parent::__construct($resultFactory, $stringHelper);
-        $this->stockResource = $stockResource;
+        parent::__construct($resultFactory, $stringHelper, $dateTimeHelper);
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function getResource(): AbstractResource
     {
         return $this->stockResource;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getName(): string
     {
         return 'get_stock_single_stock';
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function buildSchema(): Schema
     {
         return new Schema(
@@ -49,15 +64,18 @@ class GetStockSingleStock extends AbstractTool
                     name: 'sku',
                     type: 'string',
                     column: 'product.sku',
-                    description: 'Filter by SKU. Supports wildcards: "ABC%" (starts with), "%ABC" (ends with), "%ABC%" (contains)'
+                    description: 'Filter by SKU. Supports wildcards: "ABC%" (starts with), "%ABC" (ends with),'
+                                . ' "%ABC%" (contains)'
                 ),
                 new Field(
                     name: 'qty',
                     type: 'numeric',
+                    allowAggregate: true
                 ),
                 new Field(
                     name: 'is_in_stock',
                     type: 'integer',
+                    allowGroupBy: true
                 ),
                 new Field(
                     name: 'min_qty',
@@ -77,18 +95,21 @@ class GetStockSingleStock extends AbstractTool
                 new Field(
                     name: 'manage_stock',
                     type: 'integer',
-                    sortable: false
+                    sortable: false,
+                    allowGroupBy: true
                 ),
                 new Field(
                     name: 'backorders',
                     type: 'integer',
-                    sortable: false
+                    sortable: false,
+                    allowGroupBy: true
                 ),
                 new Field(
                     name: 'type_id',
                     type: 'string',
                     column: 'product.type_id',
-                    sortable: false
+                    sortable: false,
+                    allowGroupBy: true
                 ),
             ],
             tableAlias: 'stock',
@@ -97,6 +118,9 @@ class GetStockSingleStock extends AbstractTool
         );
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function getDescriptionLines(): array
     {
         return [
@@ -107,6 +131,9 @@ class GetStockSingleStock extends AbstractTool
         ];
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function getExamplePrompts(): array
     {
         return [
@@ -117,6 +144,9 @@ class GetStockSingleStock extends AbstractTool
         ];
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function getExtraSchemaProperties(): array
     {
         return [
@@ -145,6 +175,9 @@ class GetStockSingleStock extends AbstractTool
         ];
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function transformRows(array $rows): array
     {
         foreach ($rows as &$row) {

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\Tool;
@@ -12,7 +13,7 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\DeploymentConfig;
 use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Framework\App\ResourceConnection;
-use Magento\Framework\Composer\ComposerInformation;
+use Magento\Framework\Cache\Backend\Redis;
 use Magento\Framework\HTTP\Client\Curl;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\Session\SaveHandler\Redis\Config as RedisConfig;
@@ -28,49 +29,45 @@ use Magento\Framework\Session\SaveHandler\Redis\Config as RedisConfig;
  * - OpenSearch/ElasticSearch
  * - Cache backend (Redis or Filesystem)
  * - Session storage (Redis, Files, or DB)
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class GetSystemVersions implements ToolInterface
 {
-    private ResourceConnection $resourceConnection;
-    private ToolResultFactory $resultFactory;
-    private ProductMetadataInterface $productMetadata;
-    private ComposerInformation $composerInformation;
-    private ScopeConfigInterface $scopeConfig;
-    private SearchClientResolver $searchClientResolver;
-    private DeploymentConfig $deploymentConfig;
-    private RedisConfig $redisConfig;
-    private Curl $curl;
-    private Json $json;
-
+    /**
+     * @param ResourceConnection $resourceConnection
+     * @param ToolResultFactory $resultFactory
+     * @param ProductMetadataInterface $productMetadata
+     * @param ScopeConfigInterface $scopeConfig
+     * @param SearchClientResolver $searchClientResolver
+     * @param DeploymentConfig $deploymentConfig
+     * @param RedisConfig $redisConfig
+     * @param Curl $curl
+     * @param Json $json
+     */
     public function __construct(
-        ResourceConnection $resourceConnection,
-        ToolResultFactory $resultFactory,
-        ProductMetadataInterface $productMetadata,
-        ComposerInformation $composerInformation,
-        ScopeConfigInterface $scopeConfig,
-        SearchClientResolver $searchClientResolver,
-        DeploymentConfig $deploymentConfig,
-        RedisConfig $redisConfig,
-        Curl $curl,
-        Json $json
+        private readonly ResourceConnection $resourceConnection,
+        private readonly ToolResultFactory $resultFactory,
+        private readonly ProductMetadataInterface $productMetadata,
+        private readonly ScopeConfigInterface $scopeConfig,
+        private readonly SearchClientResolver $searchClientResolver,
+        private readonly DeploymentConfig $deploymentConfig,
+        private readonly RedisConfig $redisConfig,
+        private readonly Curl $curl,
+        private readonly Json $json
     ) {
-        $this->resourceConnection = $resourceConnection;
-        $this->resultFactory = $resultFactory;
-        $this->productMetadata = $productMetadata;
-        $this->composerInformation = $composerInformation;
-        $this->scopeConfig = $scopeConfig;
-        $this->searchClientResolver = $searchClientResolver;
-        $this->deploymentConfig = $deploymentConfig;
-        $this->redisConfig = $redisConfig;
-        $this->curl = $curl;
-        $this->json = $json;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getName(): string
     {
         return 'get_system_versions';
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getDescription(): string
     {
         return 'Get versions of system components running on the server.
@@ -94,6 +91,9 @@ Example prompts:
 - "What cache backend is used?"';
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getInputSchema(): array
     {
         return [
@@ -103,6 +103,9 @@ Example prompts:
         ];
     }
 
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): ToolResultInterface
     {
         $lines = [];
@@ -136,6 +139,8 @@ Example prompts:
 
     /**
      * Get Composer version
+     *
+     * @return string
      */
     private function getComposerVersion(): string
     {
@@ -147,7 +152,9 @@ Example prompts:
 
             // Fallback: try to get from composer.lock
             $composerLockPath = BP . '/composer.lock';
+            // phpcs:ignore Magento2.Functions.DiscouragedFunction -- Reading local composer.lock file
             if (file_exists($composerLockPath)) {
+                // phpcs:ignore Magento2.Functions.DiscouragedFunction -- Reading local composer.lock file
                 $lockContent = file_get_contents($composerLockPath);
                 $lockData = $this->json->unserialize($lockContent);
                 if (isset($lockData['plugin-api-version'])) {
@@ -163,6 +170,8 @@ Example prompts:
 
     /**
      * Get search engine version (OpenSearch or ElasticSearch)
+     *
+     * @return string
      */
     private function getSearchEngineVersion(): string
     {
@@ -202,13 +211,15 @@ Example prompts:
 
     /**
      * Get cache backend info (Redis with version or Filesystem)
+     *
+     * @return string
      */
     private function getCacheBackendInfo(): string
     {
         try {
             $cacheBackend = $this->deploymentConfig->get('cache/frontend/default/backend');
 
-            if ($cacheBackend === 'Magento\\Framework\\Cache\\Backend\\Redis'
+            if ($cacheBackend === Redis::class
                 || $cacheBackend === 'Cm_Cache_Backend_Redis'
             ) {
                 $redisVersion = $this->getRedisVersionFromCache();
@@ -223,6 +234,8 @@ Example prompts:
 
     /**
      * Get session storage info (Redis with version, Files, or DB)
+     *
+     * @return string
      */
     private function getSessionStorageInfo(): string
     {
@@ -246,6 +259,8 @@ Example prompts:
 
     /**
      * Get Redis version from cache configuration
+     *
+     * @return string|null
      */
     private function getRedisVersionFromCache(): ?string
     {
@@ -263,6 +278,8 @@ Example prompts:
 
     /**
      * Get Redis version from session configuration
+     *
+     * @return string|null
      */
     private function getRedisVersionFromSession(): ?string
     {
@@ -280,6 +297,12 @@ Example prompts:
 
     /**
      * Connect to Redis and get version
+     *
+     * @param string $host
+     * @param int $port
+     * @param string|null $password
+     * @param int $database
+     * @return string|null
      */
     private function getRedisVersion(string $host, int $port, ?string $password, int $database): ?string
     {

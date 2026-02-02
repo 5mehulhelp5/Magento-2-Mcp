@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model;
@@ -14,23 +15,23 @@ use Magento\Framework\Exception\NoSuchEntityException;
 
 class AclRoleRepository implements AclRoleRepositoryInterface
 {
-    private AclRoleResource $resource;
-    private AclRoleFactory $roleFactory;
-    private CollectionFactory $collectionFactory;
-    private ResourceConnection $resourceConnection;
-
+    /**
+     * @param AclRoleResource $resource
+     * @param AclRoleFactory $roleFactory
+     * @param CollectionFactory $collectionFactory
+     * @param ResourceConnection $resourceConnection
+     */
     public function __construct(
-        AclRoleResource $resource,
-        AclRoleFactory $roleFactory,
-        CollectionFactory $collectionFactory,
-        ResourceConnection $resourceConnection
+        private readonly AclRoleResource $resource,
+        private readonly AclRoleFactory $roleFactory,
+        private readonly CollectionFactory $collectionFactory,
+        private readonly ResourceConnection $resourceConnection
     ) {
-        $this->resource = $resource;
-        $this->roleFactory = $roleFactory;
-        $this->collectionFactory = $collectionFactory;
-        $this->resourceConnection = $resourceConnection;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getById(int $roleId): AclRoleInterface
     {
         $role = $this->roleFactory->create();
@@ -43,6 +44,9 @@ class AclRoleRepository implements AclRoleRepositoryInterface
         return $role;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function save(AclRoleInterface $role): AclRoleInterface
     {
         try {
@@ -54,6 +58,9 @@ class AclRoleRepository implements AclRoleRepositoryInterface
         return $role;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function delete(AclRoleInterface $role): bool
     {
         try {
@@ -65,17 +72,26 @@ class AclRoleRepository implements AclRoleRepositoryInterface
         return true;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function deleteById(int $roleId): bool
     {
         return $this->delete($this->getById($roleId));
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getList(): array
     {
         $collection = $this->collectionFactory->create();
         return $collection->getItems();
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getRoleTools(int $roleId): array
     {
         $connection = $this->resourceConnection->getConnection();
@@ -88,6 +104,9 @@ class AclRoleRepository implements AclRoleRepositoryInterface
         return $connection->fetchCol($select);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function saveRoleTools(int $roleId, array $toolNames): void
     {
         $connection = $this->resourceConnection->getConnection();

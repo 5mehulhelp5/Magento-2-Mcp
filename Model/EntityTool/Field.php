@@ -121,7 +121,10 @@ class Field
 
     /**
      * Check if field can be used for sorting
+     *
      * Note: requires a DB column to be sortable
+     *
+     * @return bool
      */
     public function isSortable(): bool
     {

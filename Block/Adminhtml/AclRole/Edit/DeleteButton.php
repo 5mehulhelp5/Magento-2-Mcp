@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Block\Adminhtml\AclRole\Edit;
@@ -9,17 +10,19 @@ use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
 class DeleteButton implements ButtonProviderInterface
 {
-    private UrlInterface $urlBuilder;
-    private RequestInterface $request;
-
+    /**
+     * @param UrlInterface $urlBuilder
+     * @param RequestInterface $request
+     */
     public function __construct(
-        UrlInterface $urlBuilder,
-        RequestInterface $request
+        private readonly UrlInterface $urlBuilder,
+        private readonly RequestInterface $request
     ) {
-        $this->urlBuilder = $urlBuilder;
-        $this->request = $request;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getButtonData(): array
     {
         $roleId = $this->request->getParam('role_id');

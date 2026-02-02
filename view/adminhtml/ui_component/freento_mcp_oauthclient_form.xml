@@ -1,0 +1,145 @@
+<?xml version="1.0"?>
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">freento_mcp_oauthclient_form.freento_mcp_oauthclient_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">MCP Client</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="back" class="Freento\Mcp\Block\Adminhtml\OAuthClient\Edit\BackButton"/>
+            <button name="save" class="Freento\Mcp\Block\Adminhtml\OAuthClient\Edit\SaveButton"/>
+        </buttons>
+        <namespace>freento_mcp_oauthclient_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>freento_mcp_oauthclient_form.freento_mcp_oauthclient_form_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="freento_mcp_oauthclient_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="freento_mcp/oauthclient/save"/>
+        </settings>
+        <dataProvider class="Freento\Mcp\Ui\DataProvider\OAuthClientFormDataProvider" name="freento_mcp_oauthclient_form_data_source">
+            <settings>
+                <requestFieldName>entity_id</requestFieldName>
+                <primaryFieldName>entity_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <fieldset name="general">
+        <settings>
+            <label translate="true">Client Information</label>
+        </settings>
+        <field name="entity_id" formElement="hidden">
+            <settings>
+                <dataType>text</dataType>
+            </settings>
+        </field>
+        <field name="name" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Client Name</label>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+        <field name="role_id" formElement="select">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">MCP Role</label>
+                <notice translate="true">Select the MCP role that defines which tools this client can access.</notice>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Freento\Mcp\Ui\Component\Form\AclRoleOptions"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="created_by" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Created By</label>
+                <disabled>true</disabled>
+            </settings>
+        </field>
+        <field name="is_active" formElement="checkbox">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="default" xsi:type="number">1</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>boolean</dataType>
+                <label translate="true">Active</label>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="number">0</map>
+                            <map name="true" xsi:type="number">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+    </fieldset>
+    <fieldset name="credentials">
+        <settings>
+            <label translate="true">OAuth Credentials</label>
+            <collapsible>false</collapsible>
+        </settings>
+        <container name="credentials_container" component="Freento_Mcp/js/form/credentials">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="template" xsi:type="string">Freento_Mcp/form/credentials</item>
+                    <item name="getSecretUrl" xsi:type="url" path="freento_mcp/oauthclient/getSecret"/>
+                </item>
+            </argument>
+        </container>
+    </fieldset>
+    <fieldset name="otp_section">
+        <settings>
+            <label translate="true">Authorization (OTP)</label>
+            <collapsible>false</collapsible>
+        </settings>
+        <container name="otp_container" component="Freento_Mcp/js/form/otp-generator">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="template" xsi:type="string">Freento_Mcp/form/otp-generator</item>
+                    <item name="generateUrl" xsi:type="url" path="freento_mcp/oauthclient/generateOtp"/>
+                </item>
+            </argument>
+        </container>
+    </fieldset>
+    <fieldset name="token_section">
+        <settings>
+            <label translate="true">Access Token</label>
+            <collapsible>false</collapsible>
+        </settings>
+        <container name="token_container" component="Freento_Mcp/js/form/token-generator">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="template" xsi:type="string">Freento_Mcp/form/token-generator</item>
+                    <item name="generateTokenUrl" xsi:type="url" path="freento_mcp/oauthclient/generateToken"/>
+                </item>
+            </argument>
+        </container>
+    </fieldset>
+</form>

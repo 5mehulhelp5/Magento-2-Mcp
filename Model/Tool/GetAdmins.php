@@ -1,34 +1,46 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\Tool;
 
-use Freento\Mcp\Model\ResourceModel\AdminResource;
-use Freento\Mcp\Model\EntityTool\Schema;
+use Freento\Mcp\Model\EntityTool\AbstractTool;
 use Freento\Mcp\Model\EntityTool\Field;
+use Freento\Mcp\Model\EntityTool\Schema;
+use Freento\Mcp\Model\Helper\DateTimeHelper;
 use Freento\Mcp\Model\Helper\StringHelper;
 use Freento\Mcp\Model\ResourceModel\EntityTool\AbstractResource;
-use Freento\Mcp\Model\EntityTool\AbstractTool;
+use Freento\Mcp\Model\ResourceModel\EntityTool\AdminResource;
 use Freento\Mcp\Model\ToolResultFactory;
 
 class GetAdmins extends AbstractTool
 {
-    private AdminResource $adminResource;
-
+    /**
+     * @param AdminResource $adminResource
+     * @param ToolResultFactory $resultFactory
+     * @param StringHelper $stringHelper
+     * @param DateTimeHelper $dateTimeHelper
+     */
     public function __construct(
-        AdminResource $adminResource,
+        private readonly AdminResource $adminResource,
         ToolResultFactory $resultFactory,
-        StringHelper $stringHelper
+        StringHelper $stringHelper,
+        DateTimeHelper $dateTimeHelper
     ) {
-        parent::__construct($resultFactory, $stringHelper);
-        $this->adminResource = $adminResource;
+        parent::__construct($resultFactory, $stringHelper, $dateTimeHelper);
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function getResource(): AbstractResource
     {
         return $this->adminResource;
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function buildSchema(): Schema
     {
         return new Schema(
@@ -65,17 +77,21 @@ class GetAdmins extends AbstractTool
                     type: 'string',
                     column: 'role.role_name',
                     sortable: false,
+                    allowGroupBy: true,
                     description: 'Role name. Supports wildcards.'
                 ),
                 new Field(
                     name: 'is_active',
                     type: 'integer',
                     sortable: false,
+                    allowGroupBy: true,
                     description: 'Active status (1 = active, 0 = inactive)'
                 ),
                 new Field(
                     name: 'created',
                     type: 'date',
+                    allowGroupBy: true,
+                    groupByOptions: ['month', 'day'],
                     description: 'Creation date (YYYY-MM-DD)'
                 ),
                 new Field(
@@ -100,6 +116,9 @@ class GetAdmins extends AbstractTool
         );
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function getDescriptionLines(): array
     {
         return [
@@ -110,6 +129,9 @@ class GetAdmins extends AbstractTool
         ];
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function getExamplePrompts(): array
     {
         return [
@@ -120,6 +142,9 @@ class GetAdmins extends AbstractTool
         ];
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function transformRows(array $rows): array
     {
         foreach ($rows as &$row) {

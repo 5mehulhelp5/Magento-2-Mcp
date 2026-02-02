@@ -42,6 +42,7 @@ class Operators
      * Operators: eq, neq, in, nin, like, nlike
      *
      * @return array JSON Schema definition
+     * phpcs:disable Magento2.Functions.StaticFunction
      */
     public static function string(): array
     {
@@ -72,6 +73,7 @@ class Operators
      * Operators: eq, neq, gt, gte, lt, lte, in, nin
      *
      * @return array JSON Schema definition
+     * phpcs:disable Magento2.Functions.StaticFunction
      */
     public static function numeric(): array
     {
@@ -105,6 +107,7 @@ class Operators
      * Dates should be in format: YYYY-MM-DD or YYYY-MM-DD HH:MM:SS
      *
      * @return array JSON Schema definition
+     * phpcs:disable Magento2.Functions.StaticFunction
      */
     public static function date(): array
     {
@@ -126,6 +129,7 @@ class Operators
      *
      * @param string $description Field description for LLM
      * @return array JSON Schema with operators
+     * phpcs:disable Magento2.Functions.StaticFunction
      */
     public static function stringField(string $description = ''): array
     {
@@ -143,6 +147,7 @@ class Operators
      *
      * @param string $description Field description for LLM
      * @return array JSON Schema with operators
+     * phpcs:disable Magento2.Functions.StaticFunction
      */
     public static function integerField(string $description = ''): array
     {
@@ -160,6 +165,7 @@ class Operators
      *
      * @param string $description Field description for LLM
      * @return array JSON Schema with operators
+     * phpcs:disable Magento2.Functions.StaticFunction
      */
     public static function numericField(string $description = ''): array
     {
@@ -177,6 +183,7 @@ class Operators
      *
      * @param string $description Field description for LLM
      * @return array JSON Schema with operators
+     * phpcs:disable Magento2.Functions.StaticFunction
      */
     public static function dateField(string $description = ''): array
     {

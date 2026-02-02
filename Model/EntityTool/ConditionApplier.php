@@ -1,8 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\EntityTool;
 
+use Freento\Mcp\Model\Helper\DateTimeHelper;
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Select;
 
 /**
@@ -35,6 +38,16 @@ use Magento\Framework\DB\Select;
  */
 class ConditionApplier
 {
+    /**
+     * @param DateTimeHelper $dateTimeHelper
+     * @param ResourceConnection $resourceConnection
+     */
+    public function __construct(
+        private readonly DateTimeHelper $dateTimeHelper,
+        private readonly ResourceConnection $resourceConnection
+    ) {
+    }
+
     /**
      * Apply condition to select query
      *
@@ -82,7 +95,7 @@ class ConditionApplier
 
         // Auto-detect wildcards in simple string values
         // e.g., '%@gmail.com' becomes ['like' => '%@gmail.com']
-        if (!is_array($condition) && is_string($condition) && str_contains($condition, '%')) {
+        if (is_string($condition) && str_contains($condition, '%')) {
             $condition = ['like' => $condition];
         }
 
@@ -90,15 +103,17 @@ class ConditionApplier
     }
 
     /**
-     * Apply date condition with automatic time normalization
+     * Apply date condition with automatic time normalization and timezone conversion
      *
      * Normalizes date-only values (YYYY-MM-DD) by adding time component:
      * - gte, gt, eq: adds 00:00:00 (start of day)
      * - lte, lt: adds 23:59:59 (end of day)
      *
+     * Then converts from store timezone to UTC for database comparison.
+     *
      * This ensures date ranges work intuitively:
-     * - {'gte': '2024-01-01'} → >= '2024-01-01 00:00:00'
-     * - {'lte': '2024-01-31'} → <= '2024-01-31 23:59:59'
+     * - {'gte': '2024-01-01'} in Europe/Paris → >= '2023-12-31 23:00:00' UTC
+     * - {'lte': '2024-01-31'} in Europe/Paris → <= '2024-01-31 22:59:59' UTC
      *
      * @param Select $select Database select object
      * @param string $field Full field name with table alias
@@ -109,24 +124,7 @@ class ConditionApplier
         string $field,
         mixed $condition
     ): void {
-        $condition = $this->decodeCondition($condition);
-
-        if (is_array($condition)) {
-            // Normalize dates: add time component if missing
-            // For "start" operators, use beginning of day
-            foreach (['gte', 'gt', 'eq'] as $op) {
-                if (isset($condition[$op])) {
-                    $condition[$op] = $this->normalizeDate($condition[$op], '00:00:00');
-                }
-            }
-            // For "end" operators, use end of day
-            foreach (['lte', 'lt'] as $op) {
-                if (isset($condition[$op])) {
-                    $condition[$op] = $this->normalizeDate($condition[$op], '23:59:59');
-                }
-            }
-        }
-
+        $condition = $this->prepareDateCondition($condition);
         $this->apply($select, $field, $condition);
     }
 
@@ -135,6 +133,9 @@ class ConditionApplier
      *
      * Handles edge case where condition is passed as JSON string
      * (e.g., '{"eq": "pending"}' instead of ['eq' => 'pending'])
+     *
+     * @param mixed $condition
+     * @return mixed
      */
     private function decodeCondition(mixed $condition): mixed
     {
@@ -177,60 +178,105 @@ class ConditionApplier
         string $operator,
         mixed $value
     ): void {
-        switch ($operator) {
-            case 'eq':
-                $select->where("{$field} = ?", $value);
-                break;
-
-            case 'neq':
-                $select->where("{$field} != ?", $value);
-                break;
-
-            case 'in':
-                if (is_array($value) && !empty($value)) {
-                    $select->where("{$field} IN (?)", $value);
-                }
-                break;
-
-            case 'nin':
-            case 'not_in':
-                if (is_array($value) && !empty($value)) {
-                    $select->where("{$field} NOT IN (?)", $value);
-                }
-                break;
-
-            case 'like':
-                $select->where("{$field} LIKE ?", $value);
-                break;
-
-            case 'nlike':
-            case 'not_like':
-                $select->where("{$field} NOT LIKE ?", $value);
-                break;
-
-            case 'gt':
-                $select->where("{$field} > ?", $value);
-                break;
-
-            case 'gte':
-                $select->where("{$field} >= ?", $value);
-                break;
-
-            case 'lt':
-                $select->where("{$field} < ?", $value);
-                break;
-
-            case 'lte':
-                $select->where("{$field} <= ?", $value);
-                break;
-
-            case 'null':
-                if ($value) {
-                    $select->where("{$field} IS NULL");
-                } else {
-                    $select->where("{$field} IS NOT NULL");
-                }
-                break;
+        $condition = $this->buildOperatorCondition($field, $operator, $value);
+        if ($condition) {
+            $select->where($condition);
         }
+    }
+
+    /**
+     * Build SQL condition string for use in JOIN clauses
+     *
+     * @param string $field Full field name with table alias
+     * @param mixed $condition Condition value or array with operators
+     * @param string $type Field type: 'string', 'date', 'currency', 'integer'
+     * @return string|null SQL condition string or null if no valid condition
+     */
+    public function buildCondition(string $field, mixed $condition, string $type = 'string'): ?string
+    {
+        $condition = $this->decodeCondition($condition);
+
+        if ($type === 'date') {
+            $condition = $this->prepareDateCondition($condition);
+        } elseif ($type === 'string' && is_string($condition) && str_contains($condition, '%')) {
+            $condition = ['like' => $condition];
+        }
+
+        $connection = $this->resourceConnection->getConnection();
+
+        if (!is_array($condition)) {
+            return $connection->quoteInto("$field = ?", $condition);
+        }
+
+        $parts = [];
+        foreach ($condition as $operator => $value) {
+            $part = $this->buildOperatorCondition($field, strtolower($operator), $value);
+            if ($part !== null) {
+                $parts[] = $part;
+            }
+        }
+
+        return $parts ? implode(' AND ', $parts) : null;
+    }
+
+    /**
+     * Prepare date condition with normalization and timezone conversion
+     *
+     * @param mixed $condition
+     * @return mixed
+     */
+    private function prepareDateCondition(mixed $condition): mixed
+    {
+        $condition = $this->decodeCondition($condition);
+        if (is_array($condition)) {
+            foreach (['gte', 'eq', 'lt'] as $op) {
+                if (isset($condition[$op])) {
+                    $normalized = $this->normalizeDate($condition[$op], '00:00:00');
+                    $condition[$op] = $this->dateTimeHelper->convertLocalToUtc($normalized);
+                }
+            }
+            foreach (['lte', 'gt'] as $op) {
+                if (isset($condition[$op])) {
+                    $normalized = $this->normalizeDate($condition[$op], '23:59:59');
+                    $condition[$op] = $this->dateTimeHelper->convertLocalToUtc($normalized);
+                }
+            }
+        } elseif (is_string($condition)) {
+            $normalized = $this->normalizeDate($condition, '00:00:00');
+            $condition = $this->dateTimeHelper->convertLocalToUtc($normalized);
+        }
+
+        return $condition;
+    }
+
+    /**
+     * Build SQL condition string for single operator
+     *
+     * @param string $field Full field name
+     * @param string $operator Operator name
+     * @param mixed $value Operator value
+     * @return string|null SQL condition or null
+     */
+    private function buildOperatorCondition(string $field, string $operator, mixed $value): ?string
+    {
+        $connection = $this->resourceConnection->getConnection();
+        return match ($operator) {
+            'eq' => $connection->quoteInto("$field = ?", $value),
+            'neq' => $connection->quoteInto("$field != ?", $value),
+            'gt' => $connection->quoteInto("$field > ?", $value),
+            'gte' => $connection->quoteInto("$field >= ?", $value),
+            'lt' => $connection->quoteInto("$field < ?", $value),
+            'lte' => $connection->quoteInto("$field <= ?", $value),
+            'like' => $connection->quoteInto("$field LIKE ?", $value),
+            'nlike', 'not_like' => $connection->quoteInto("$field NOT LIKE ?", $value),
+            'in' => is_array($value) && !empty($value)
+                ? $field . ' IN (' . implode(',', array_map([$connection, 'quote'], $value)) . ')'
+                : null,
+            'nin', 'not_in' => is_array($value) && !empty($value)
+                ? $field . ' NOT IN (' . implode(',', array_map([$connection, 'quote'], $value)) . ')'
+                : null,
+            'null' => $value ? "$field IS NULL" : "$field IS NOT NULL",
+            default => null,
+        };
     }
 }

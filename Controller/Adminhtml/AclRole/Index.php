@@ -5,22 +5,27 @@ namespace Freento\Mcp\Controller\Adminhtml\AclRole;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\View\Result\PageFactory;
 
-class Index extends Action
+class Index extends Action implements HttpGetActionInterface
 {
     public const ADMIN_RESOURCE = 'Freento_McpServer::acl_rules';
 
-    private PageFactory $resultPageFactory;
-
+    /**
+     * @param Context $context
+     * @param PageFactory $resultPageFactory
+     */
     public function __construct(
         Context $context,
-        PageFactory $resultPageFactory
+        private readonly PageFactory $resultPageFactory
     ) {
         parent::__construct($context);
-        $this->resultPageFactory = $resultPageFactory;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function execute()
     {
         $resultPage = $this->resultPageFactory->create();

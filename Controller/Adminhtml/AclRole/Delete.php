@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Controller\Adminhtml\AclRole;
@@ -6,22 +7,28 @@ namespace Freento\Mcp\Controller\Adminhtml\AclRole;
 use Freento\Mcp\Api\AclRoleRepositoryInterface;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Exception\LocalizedException;
 
-class Delete extends Action
+class Delete extends Action implements HttpPostActionInterface, HttpGetActionInterface
 {
     public const ADMIN_RESOURCE = 'Freento_McpServer::acl_rules';
 
-    private AclRoleRepositoryInterface $roleRepository;
-
+    /**
+     * @param Context $context
+     * @param AclRoleRepositoryInterface $roleRepository
+     */
     public function __construct(
         Context $context,
-        AclRoleRepositoryInterface $roleRepository
+        private readonly AclRoleRepositoryInterface $roleRepository
     ) {
         parent::__construct($context);
-        $this->roleRepository = $roleRepository;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function execute()
     {
         $resultRedirect = $this->resultRedirectFactory->create();

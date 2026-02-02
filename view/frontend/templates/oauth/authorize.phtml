@@ -1,0 +1,174 @@
+<?php
+/** @var \Freento\Mcp\Block\OAuth\Authorize $block */
+$clientName = $block->getClientName();
+$errorMessage = $block->getErrorMessage();
+?>
+<style>
+    .oauth-authorize {
+        max-width: 450px;
+        margin: 50px auto;
+        padding: 30px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .oauth-authorize h1 {
+        margin: 0 0 20px;
+        font-size: 22px;
+        text-align: center;
+        color: #333;
+    }
+    .oauth-authorize .client-info {
+        margin-bottom: 25px;
+        text-align: center;
+    }
+    .oauth-authorize .client-name {
+        font-size: 18px;
+        font-weight: bold;
+        color: #1979c3;
+    }
+    .oauth-authorize .client-desc {
+        color: #666;
+        margin-top: 5px;
+    }
+    .oauth-authorize .permissions {
+        margin-bottom: 25px;
+        padding: 15px;
+        background: #f5f5f5;
+        border-radius: 4px;
+    }
+    .oauth-authorize .permissions strong {
+        display: block;
+        margin-bottom: 10px;
+    }
+    .oauth-authorize .permissions ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+    .oauth-authorize .permissions li {
+        margin: 5px 0;
+        color: #555;
+    }
+    .oauth-authorize .error-message {
+        margin-bottom: 20px;
+        padding: 12px;
+        background: #fdecea;
+        border: 1px solid #f5c6cb;
+        border-radius: 4px;
+        color: #721c24;
+        text-align: center;
+    }
+    .oauth-authorize .form-group {
+        margin-bottom: 15px;
+    }
+    .oauth-authorize label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+    }
+    .oauth-authorize input[type="text"],
+    .oauth-authorize input[type="password"] {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    .oauth-authorize input:focus {
+        border-color: #1979c3;
+        outline: none;
+        box-shadow: 0 0 3px rgba(25, 121, 195, 0.3);
+    }
+    .oauth-authorize .btn-authorize {
+        width: 100%;
+        padding: 14px;
+        background: #1979c3;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+    .oauth-authorize .btn-authorize:hover {
+        background: #006bb4;
+    }
+    .oauth-authorize .invalid-client {
+        padding: 20px;
+        background: #fdecea;
+        border: 1px solid #f5c6cb;
+        border-radius: 4px;
+        text-align: center;
+        color: #721c24;
+    }
+    .oauth-authorize .security-note {
+        margin-top: 20px;
+        font-size: 12px;
+        color: #888;
+        text-align: center;
+    }
+</style>
+
+<div class="oauth-authorize">
+    <?php if ($clientName): ?>
+        <h1><?= $block->escapeHtml(__('Authorize Application')) ?></h1>
+
+        <div class="client-info">
+            <div class="client-name"><?= $block->escapeHtml($clientName) ?></div>
+            <div class="client-desc"><?= $block->escapeHtml(__('wants to access your Magento MCP server')) ?></div>
+        </div>
+
+        <div class="permissions">
+            <strong><?= $block->escapeHtml(__('This application will be able to:')) ?></strong>
+            <ul>
+                <li><?= $block->escapeHtml(__('Read orders, products, and customers')) ?></li>
+                <li><?= $block->escapeHtml(__('Access store data based on assigned role')) ?></li>
+            </ul>
+        </div>
+
+        <?php if ($errorMessage): ?>
+            <div class="error-message">
+                <?= $block->escapeHtml($errorMessage) ?>
+            </div>
+        <?php endif; ?>
+
+        <form action="<?= $block->escapeUrl($block->getFormAction()) ?>" method="post">
+            <input type="hidden" name="form_key" value="<?= $block->escapeHtmlAttr($block->getFormKey()) ?>"/>
+            <input type="hidden" name="client_id" value="<?= $block->escapeHtmlAttr($block->getClientId()) ?>"/>
+            <input type="hidden" name="redirect_uri" value="<?= $block->escapeHtmlAttr($block->getRedirectUri()) ?>"/>
+            <input type="hidden" name="state" value="<?= $block->escapeHtmlAttr($block->getState()) ?>"/>
+            <?php if ($block->getCodeChallenge()): ?>
+                <input type="hidden" name="code_challenge"
+                       value="<?= $block->escapeHtmlAttr($block->getCodeChallenge()) ?>"/>
+                <input type="hidden" name="code_challenge_method"
+                       value="<?= $block->escapeHtmlAttr($block->getCodeChallengeMethod()) ?>"/>
+            <?php endif; ?>
+
+            <div class="form-group">
+                <label for="pin"><?= $block->escapeHtml(__('OTP (One-Time Password)')) ?></label>
+                <input type="text" id="pin" name="pin" autocomplete="one-time-code" required
+                       placeholder="<?= $block->escapeHtmlAttr(__('Enter the OTP for this client')) ?>"
+                       style="font-family: monospace;"/>
+            </div>
+
+            <button type="submit" class="btn-authorize">
+                <?= $block->escapeHtml(__('Authorize')) ?>
+            </button>
+        </form>
+
+        <div class="security-note">
+            <?= $block->escapeHtml(
+                __('Generate OTP in Magento Admin: System → Freento MCP → AI MCP Clients → Edit Client')
+            ) ?>
+        </div>
+    <?php else: ?>
+        <h1><?= $block->escapeHtml(__('Authorization Error')) ?></h1>
+        <div class="invalid-client">
+            <?= $block->escapeHtml($errorMessage ?: __('Invalid or unknown application.')) ?>
+        </div>
+    <?php endif; ?>
+</div>

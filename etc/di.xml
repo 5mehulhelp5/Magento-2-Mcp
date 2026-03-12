@@ -28,6 +28,10 @@
                 <item name="get_creditmemos" xsi:type="object">Freento\Mcp\Model\Tool\GetCreditmemos</item>
                 <!-- Catalog -->
                 <item name="get_products" xsi:type="object">Freento\Mcp\Model\Tool\GetProducts</item>
+                <item name="get_categories" xsi:type="object">Freento\Mcp\Model\Tool\GetCategories</item>
+                <item name="get_product_prices" xsi:type="object">Freento\Mcp\Model\Tool\GetProductPrices</item>
+                <item name="get_product_tier_prices" xsi:type="object">Freento\Mcp\Model\Tool\GetProductTierPrices</item>
+                <item name="get_tax_rules" xsi:type="object">Freento\Mcp\Model\Tool\GetTaxRules</item>
                 <item name="get_stock_single_stock" xsi:type="object">Freento\Mcp\Model\Tool\GetStockSingleStock</item>
                 <!-- Customer -->
                 <item name="get_customers" xsi:type="object">Freento\Mcp\Model\Tool\GetCustomers</item>
@@ -39,6 +43,8 @@
                 <item name="get_locked_admins" xsi:type="object">Freento\Mcp\Model\Tool\GetLockedAdmins</item>
                 <!-- System -->
                 <item name="get_system_versions" xsi:type="object">Freento\Mcp\Model\Tool\GetSystemVersions</item>
+                <!-- Stores -->
+                <item name="get_stores" xsi:type="object">Freento\Mcp\Model\Tool\GetStores</item>
             </argument>
         </arguments>
     </type>

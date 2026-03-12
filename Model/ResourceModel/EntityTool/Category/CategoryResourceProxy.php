@@ -1,0 +1,72 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Freento\Mcp\Model\ResourceModel\EntityTool\Category;
+
+use Freento\Mcp\Model\EntityTool\ConditionApplier;
+use Freento\Mcp\Model\EntityTool\ListResult;
+use Freento\Mcp\Model\EntityTool\ListResultFactory;
+use Freento\Mcp\Model\EntityTool\Schema;
+use Freento\Mcp\Model\Helper\DateTimeHelper;
+use Freento\Mcp\Model\ResourceModel\EntityTool\AbstractResource;
+use Magento\Framework\App\ResourceConnection;
+
+/**
+ * Category resource proxy
+ *
+ * Delegates to StoreCategoryResource when store_id filter is present,
+ * otherwise delegates to CategoryResource.
+ */
+class CategoryResourceProxy extends AbstractResource
+{
+    /**
+     * @param ResourceConnection $resourceConnection
+     * @param ConditionApplier $conditionApplier
+     * @param ListResultFactory $listResultFactory
+     * @param DateTimeHelper $dateTimeHelper
+     * @param CategoryResource $categoryResource
+     * @param StoreCategoryResource $storeCategoryResource
+     */
+    public function __construct(
+        ResourceConnection $resourceConnection,
+        ConditionApplier $conditionApplier,
+        ListResultFactory $listResultFactory,
+        DateTimeHelper $dateTimeHelper,
+        private readonly CategoryResource $categoryResource,
+        private readonly StoreCategoryResource $storeCategoryResource
+    ) {
+        parent::__construct($resourceConnection, $conditionApplier, $listResultFactory, $dateTimeHelper);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getList(
+        Schema $schema,
+        array $filters = [],
+        int $limit = 0,
+        int $offset = 0,
+        string $sortBy = '',
+        string $sortDir = 'DESC',
+        string $aggregateFunction = '',
+        string $aggregateField = '',
+        string $groupBy = ''
+    ): ListResult {
+        $resource = isset($filters['store_id']) && (int)$filters['store_id'] > 0
+            ? $this->storeCategoryResource
+            : $this->categoryResource;
+
+        return $resource->getList(
+            $schema,
+            $filters,
+            $limit,
+            $offset,
+            $sortBy,
+            $sortDir,
+            $aggregateFunction,
+            $aggregateField,
+            $groupBy
+        );
+    }
+}

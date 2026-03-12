@@ -10,19 +10,19 @@ use Freento\Mcp\Model\EntityTool\Schema;
 use Freento\Mcp\Model\Helper\DateTimeHelper;
 use Freento\Mcp\Model\Helper\StringHelper;
 use Freento\Mcp\Model\ResourceModel\EntityTool\AbstractResource;
-use Freento\Mcp\Model\ResourceModel\EntityTool\ProductResource;
+use Freento\Mcp\Model\ResourceModel\EntityTool\Product\ProductResourceProxy;
 use Freento\Mcp\Model\ToolResultFactory;
 
 class GetProducts extends AbstractTool
 {
     /**
-     * @param ProductResource $productResource
+     * @param ProductResourceProxy $productResource
      * @param ToolResultFactory $resultFactory
      * @param StringHelper $stringHelper
      * @param DateTimeHelper $dateTimeHelper
      */
     public function __construct(
-        private readonly ProductResource $productResource,
+        private readonly ProductResourceProxy $productResource,
         ToolResultFactory $resultFactory,
         StringHelper $stringHelper,
         DateTimeHelper $dateTimeHelper
@@ -142,10 +142,33 @@ class GetProducts extends AbstractTool
                     filter: true,
                     sortable: false
                 ),
+                new Field(
+                    name: 'category_id',
+                    type: 'integer',
+                    column: 'catalog_category_product.category_id',
+                    filter: true,
+                    sortable: false,
+                    allowGroupBy: true
+                ),
             ],
             defaultLimit: 20,
             maxLimit: 100
         );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function getExtraSchemaProperties(): array
+    {
+        return [
+            'store_id' => [
+                'type' => 'integer',
+                'description' => 'Store view ID. Filters products by the website of this store'
+                    . ' and returns store-specific attribute values (name, price, status, etc.).'
+                    . ' Without this parameter, global (default) values are returned.',
+            ],
+        ];
     }
 
     /**
@@ -156,7 +179,9 @@ class GetProducts extends AbstractTool
         return [
             'Search for products by SKU, ID, or dates',
             'Filter products by any attribute (e.g., color, size, manufacturer)',
+            'Filter by category to find products assigned to a specific category',
             'Analyze product catalog data',
+            'Filter by store view to get store-specific attribute values and website-scoped products',
         ];
     }
 
@@ -170,7 +195,8 @@ class GetProducts extends AbstractTool
             'Get products with SKU containing ABC',
             'Find products updated in the last week',
             'List products where color is red',
-            'Get products with manufacturer = Nike',
+            'Get products in category 5',
+            'Get products for store view 1',
         ];
     }
 }

@@ -1,4 +1,4 @@
-# MCP for Magento 2 — User Guide
+# Freento MCP for Magento 2 — User Guide
 
 Connect your Magento 2 store to AI assistants like Claude and ChatGPT using the Model Context Protocol (MCP).
 
@@ -192,6 +192,10 @@ Each tool supports flexible filtering, sorting, and pagination. Combined with AI
 | Tool | Description |
 |------|-------------|
 | `get_products` | Query products with attribute filtering |
+| `get_categories` | Query product categories |
+| `get_product_prices` | Get product prices by customer group and website |
+| `get_product_tier_prices` | Get tier price rules (quantity-based discounts) |
+| `get_tax_rules` | Get tax rules and rates |
 | `get_stock_single_stock` | Get inventory/stock levels |
 
 ### Customer Tools
@@ -212,6 +216,7 @@ Each tool supports flexible filtering, sorting, and pagination. Combined with AI
 | Tool | Description |
 |------|-------------|
 | `get_system_versions` | Get Magento, PHP, MySQL, Redis, OpenSearch versions |
+| `get_stores` | Get store hierarchy (websites, store groups, store views) |
 
 ## Usage Examples
 

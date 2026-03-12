@@ -1,0 +1,31 @@
+name: Deploy on Prod
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+jobs:
+  deploy:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run deploy
+        uses: appleboy/ssh-action@v1
+        env:
+          GIT_REF_NAME: ${{ github.ref_name }}
+        with:
+          host: ${{ vars.DEPLOY_DEMO_SSH_HOSTS }}
+          username: ${{ secrets.DEPLOY_DEMO_SSH_USER }}
+          key: ${{ secrets.DEPLOY_DEMO_SSH_KEY }}
+          envs: GIT_REF_NAME
+          command_timeout: 30m
+          sync: true
+          script: |
+            cd ~/source/app/code/Freento/Mcp && \
+            git fetch origin $GIT_REF_NAME && \
+            git checkout $GIT_REF_NAME && \
+            git pull origin $GIT_REF_NAME && \
+            cd ~/source && \
+            bin/magento setup:upgrade && \
+            bin/magento setup:di:compile && \
+            bin/magento setup:static-content:deploy 

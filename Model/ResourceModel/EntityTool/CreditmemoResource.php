@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Freento\Mcp\Model\ResourceModel;
+namespace Freento\Mcp\Model\ResourceModel\EntityTool;
 
 use Freento\Mcp\Model\EntityTool\Schema;
-use Freento\Mcp\Model\ResourceModel\EntityTool\AbstractResource;
 use Magento\Framework\DB\Select;
 
 class CreditmemoResource extends AbstractResource

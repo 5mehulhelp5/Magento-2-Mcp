@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * PHPUnit configuration for Freento_Mcp integration tests
+ *
+ * Run from Magento root:
+ * vendor/bin/phpunit -c app/code/Freento/Mcp/Test/Integration/phpunit.xml
+ *
+ * Or use the main Magento integration test suite:
+ * vendor/bin/phpunit -c dev/tests/integration/phpunit.xml app/code/Freento/Mcp/Test/Integration
+ */
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+         colors="true"
+         bootstrap="../../../../../dev/tests/integration/framework/bootstrap.php"
+         beStrictAboutTestsThatDoNotTestAnything="false">
+    <testsuites>
+        <testsuite name="Freento_Mcp Integration Tests">
+            <directory>./</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <includePath>.</includePath>
+        <includePath>../../../../../dev/tests/integration/testsuite</includePath>
+        <ini name="date.timezone" value="America/Los_Angeles"/>
+        <ini name="xdebug.max_nesting_level" value="200"/>
+        <const name="TESTS_INSTALL_CONFIG_FILE" value="etc/install-config-mysql.php"/>
+        <const name="TESTS_GLOBAL_CONFIG_FILE" value="etc/config-global.php"/>
+        <const name="TESTS_GLOBAL_CONFIG_DIR" value="../../../etc"/>
+        <const name="TESTS_CLEANUP" value="enabled"/>
+        <const name="TESTS_MAGENTO_MODE" value="developer"/>
+        <const name="TESTS_ERROR_LOG_LISTENER_LEVEL" value="-1"/>
+    </php>
+    <extensions>
+        <bootstrap class="Magento\TestFramework\Bootstrap\DoctrineTestExtension"/>
+    </extensions>
+</phpunit>

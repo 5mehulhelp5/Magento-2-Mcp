@@ -302,7 +302,7 @@ abstract class AbstractTool implements ToolInterface
         if (!empty($aggFields) || !empty($groupByOptions)) {
             $properties['function'] = [
                 'type' => 'string',
-                'enum' => ['sum', 'count', 'avg', 'min', 'max'],
+                'enum' => ['count'],
                 'description' => 'Aggregation function (if provided, returns aggregated data instead of list)'
             ];
 
@@ -313,6 +313,8 @@ abstract class AbstractTool implements ToolInterface
                     'enum' => $aggFieldNames,
                     'description' => 'Field to aggregate (required for sum/avg/min/max)'
                 ];
+
+                $properties['function']['enum'] = ['sum', 'count', 'avg', 'min', 'max'];
             }
 
             if (!empty($groupByOptions)) {

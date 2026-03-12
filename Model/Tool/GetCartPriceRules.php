@@ -1,16 +1,19 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Model\Tool;
 
-use Freento\Mcp\Model\Helper\DateTimeHelper;
-use Freento\Mcp\Model\ResourceModel\CartPriceRuleResource;
-use Freento\Mcp\Model\EntityTool\Schema;
+use Freento\Mcp\Model\EntityTool\AbstractTool;
 use Freento\Mcp\Model\EntityTool\Field;
+use Freento\Mcp\Model\EntityTool\Schema;
+use Freento\Mcp\Model\Helper\DateTimeHelper;
+use Freento\Mcp\Model\Helper\RuleConditionFormatter;
 use Freento\Mcp\Model\Helper\StringHelper;
 use Freento\Mcp\Model\ResourceModel\EntityTool\AbstractResource;
-use Freento\Mcp\Model\EntityTool\AbstractTool;
+use Freento\Mcp\Model\ResourceModel\EntityTool\CartPriceRuleResource;
 use Freento\Mcp\Model\ToolResultFactory;
+use Psr\Log\LoggerInterface;
 
 class GetCartPriceRules extends AbstractTool
 {
@@ -19,12 +22,16 @@ class GetCartPriceRules extends AbstractTool
      * @param ToolResultFactory $resultFactory
      * @param StringHelper $stringHelper
      * @param DateTimeHelper $dateTimeHelper
+     * @param RuleConditionFormatter $conditionFormatter
+     * @param LoggerInterface $logger
      */
     public function __construct(
-        private CartPriceRuleResource $cartPriceRuleResource,
+        private readonly CartPriceRuleResource $cartPriceRuleResource,
         ToolResultFactory $resultFactory,
         StringHelper $stringHelper,
-        DateTimeHelper $dateTimeHelper
+        DateTimeHelper $dateTimeHelper,
+        private readonly RuleConditionFormatter $conditionFormatter,
+        private readonly LoggerInterface $logger
     ) {
         parent::__construct($resultFactory, $stringHelper, $dateTimeHelper);
     }
@@ -151,6 +158,22 @@ class GetCartPriceRules extends AbstractTool
                     type: 'integer',
                     description: 'Priority'
                 ),
+                new Field(
+                    name: 'conditions',
+                    type: 'string',
+                    column: 'main_table.conditions_serialized',
+                    filter: false,
+                    sortable: false,
+                    description: 'Rule trigger conditions (e.g. subtotal >= 200)'
+                ),
+                new Field(
+                    name: 'actions',
+                    type: 'string',
+                    column: 'main_table.actions_serialized',
+                    filter: false,
+                    sortable: false,
+                    description: 'Product conditions for discount eligibility'
+                ),
             ],
             defaultLimit: 50,
             maxLimit: 200
@@ -184,6 +207,20 @@ class GetCartPriceRules extends AbstractTool
 
     /**
      * @inheritDoc
+     *
+     * Format serialized condition/action JSON as human-readable text
+     */
+    protected function formatValue(mixed $value, ?Field $field): string
+    {
+        if ($field !== null && in_array($field->getName(), ['conditions', 'actions'])) {
+            return $this->formatCondition($value);
+        }
+
+        return parent::formatValue($value, $field);
+    }
+
+    /**
+     * @inheritDoc
      */
     protected function transformRows(array $rows): array
     {
@@ -213,5 +250,27 @@ class GetCartPriceRules extends AbstractTool
         }
 
         return $rows;
+    }
+
+    /**
+     * Decode serialized condition JSON and format as human-readable string
+     *
+     * @param mixed $serialized JSON-encoded condition tree
+     * @return string Human-readable condition string
+     */
+    private function formatCondition(mixed $serialized): string
+    {
+        if (!$serialized || !is_string($serialized)) {
+            return '(none)';
+        }
+
+        try {
+            $tree = json_decode($serialized, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            $this->logger->error('Failed to decode rule condition JSON', ['exception' => $e]);
+            return '(parse error)';
+        }
+
+        return $this->conditionFormatter->format($tree);
     }
 }

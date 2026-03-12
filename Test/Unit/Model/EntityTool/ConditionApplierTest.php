@@ -1,9 +1,13 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Freento\Mcp\Test\Unit\Model\EntityTool;
 
 use Freento\Mcp\Model\EntityTool\ConditionApplier;
+use Freento\Mcp\Model\Helper\DateTimeHelper;
+use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Select;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -16,7 +20,7 @@ class ConditionApplierTest extends TestCase
     private ConditionApplier $subject;
 
     /**
-     * @var Select|MockObject|(Select&object&MockObject)|(Select&MockObject)|(object&MockObject)
+     * @var Select|MockObject
      */
     private Select|MockObject $selectMock;
 
@@ -25,7 +29,28 @@ class ConditionApplierTest extends TestCase
      */
     protected function setUp(): void
     {
-        $this->subject = new ConditionApplier();
+        $dateTimeHelperMock = $this->createMock(DateTimeHelper::class);
+        $dateTimeHelperMock->method('convertLocalToUtc')
+            ->willReturnArgument(0);
+
+        $connectionMock = $this->createMock(AdapterInterface::class);
+        $connectionMock->method('quoteInto')
+            ->willReturnCallback(function (string $text, $value): string {
+                if (is_int($value) || is_float($value)) {
+                    return str_replace('?', (string)$value, $text);
+                }
+                return str_replace('?', "'" . $value . "'", $text);
+            });
+        $connectionMock->method('quote')
+            ->willReturnCallback(function ($value): string {
+                return "'" . $value . "'";
+            });
+
+        $resourceConnectionMock = $this->createMock(ResourceConnection::class);
+        $resourceConnectionMock->method('getConnection')
+            ->willReturn($connectionMock);
+
+        $this->subject = new ConditionApplier($dateTimeHelperMock, $resourceConnectionMock);
         $this->selectMock = $this->createMock(Select::class);
     }
 
@@ -59,7 +84,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.status = ?', 'processing');
+            ->with("main_table.status = 'processing'");
 
         $this->subject->apply($this->selectMock, 'main_table.status', ['eq' => 'processing']);
     }
@@ -68,7 +93,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.status != ?', 'closed');
+            ->with("main_table.status != 'closed'");
 
         $this->subject->apply($this->selectMock, 'main_table.status', ['neq' => 'closed']);
     }
@@ -81,7 +106,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.status IN (?)', ['pending', 'processing']);
+            ->with("main_table.status IN ('pending','processing')");
 
         $this->subject->apply($this->selectMock, 'main_table.status', ['in' => ['pending', 'processing']]);
     }
@@ -90,7 +115,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.status NOT IN (?)', ['closed', 'canceled']);
+            ->with("main_table.status NOT IN ('closed','canceled')");
 
         $this->subject->apply($this->selectMock, 'main_table.status', ['nin' => ['closed', 'canceled']]);
     }
@@ -99,7 +124,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.status NOT IN (?)', ['closed']);
+            ->with("main_table.status NOT IN ('closed')");
 
         $this->subject->apply($this->selectMock, 'main_table.status', ['not_in' => ['closed']]);
     }
@@ -126,7 +151,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.email LIKE ?', '%@gmail.com');
+            ->with("main_table.email LIKE '%@gmail.com'");
 
         $this->subject->apply($this->selectMock, 'main_table.email', ['like' => '%@gmail.com']);
     }
@@ -135,7 +160,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.email NOT LIKE ?', '%@test.com');
+            ->with("main_table.email NOT LIKE '%@test.com'");
 
         $this->subject->apply($this->selectMock, 'main_table.email', ['nlike' => '%@test.com']);
     }
@@ -144,7 +169,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.sku NOT LIKE ?', 'TEST%');
+            ->with("main_table.sku NOT LIKE 'TEST%'");
 
         $this->subject->apply($this->selectMock, 'main_table.sku', ['not_like' => 'TEST%']);
     }
@@ -157,7 +182,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.grand_total > ?', 100);
+            ->with('main_table.grand_total > 100');
 
         $this->subject->apply($this->selectMock, 'main_table.grand_total', ['gt' => 100]);
     }
@@ -166,7 +191,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.grand_total >= ?', 100);
+            ->with('main_table.grand_total >= 100');
 
         $this->subject->apply($this->selectMock, 'main_table.grand_total', ['gte' => 100]);
     }
@@ -175,7 +200,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.grand_total < ?', 500);
+            ->with('main_table.grand_total < 500');
 
         $this->subject->apply($this->selectMock, 'main_table.grand_total', ['lt' => 500]);
     }
@@ -184,7 +209,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.grand_total <= ?', 500);
+            ->with('main_table.grand_total <= 500');
 
         $this->subject->apply($this->selectMock, 'main_table.grand_total', ['lte' => 500]);
     }
@@ -219,17 +244,15 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->exactly(2))
             ->method('where')
-            ->willReturnCallback(function ($condition, $value = null) {
+            ->willReturnCallback(function (string $condition) {
                 static $calls = [];
-                $calls[] = [$condition, $value];
+                $calls[] = $condition;
 
                 if (count($calls) === 1) {
-                    $this->assertEquals('main_table.grand_total >= ?', $condition);
-                    $this->assertEquals(100, $value);
+                    $this->assertEquals('main_table.grand_total >= 100', $condition);
                 }
                 if (count($calls) === 2) {
-                    $this->assertEquals('main_table.grand_total <= ?', $condition);
-                    $this->assertEquals(500, $value);
+                    $this->assertEquals('main_table.grand_total <= 500', $condition);
                 }
 
                 return $this->selectMock;
@@ -246,7 +269,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.status = ?', 'pending');
+            ->with("main_table.status = 'pending'");
 
         $this->subject->apply($this->selectMock, 'main_table.status', ['EQ' => 'pending']);
     }
@@ -259,7 +282,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.status = ?', 'pending');
+            ->with("main_table.status = 'pending'");
 
         $this->subject->apply($this->selectMock, 'main_table.status', '{"eq": "pending"}');
     }
@@ -268,7 +291,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.status IN (?)', ['pending', 'processing']);
+            ->with("main_table.status IN ('pending','processing')");
 
         $this->subject->apply($this->selectMock, 'main_table.status', '{"in": ["pending", "processing"]}');
     }
@@ -299,7 +322,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.email LIKE ?', '%@gmail.com');
+            ->with("main_table.email LIKE '%@gmail.com'");
 
         $this->subject->applyString($this->selectMock, 'main_table.email', '%@gmail.com');
     }
@@ -317,7 +340,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.sku LIKE ?', 'ABC%123');
+            ->with("main_table.sku LIKE 'ABC%123'");
 
         $this->subject->applyString($this->selectMock, 'main_table.sku', 'ABC%123');
     }
@@ -326,7 +349,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.email LIKE ?', '%test%');
+            ->with("main_table.email LIKE '%test%'");
 
         $this->subject->applyString($this->selectMock, 'main_table.email', ['like' => '%test%']);
     }
@@ -335,7 +358,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.email = ?', 'exact@example.com');
+            ->with("main_table.email = 'exact@example.com'");
 
         $this->subject->applyString($this->selectMock, 'main_table.email', ['eq' => 'exact@example.com']);
     }
@@ -348,16 +371,16 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.created_at >= ?', '2024-01-01 00:00:00');
+            ->with("main_table.created_at >= '2024-01-01 00:00:00'");
 
         $this->subject->applyDate($this->selectMock, 'main_table.created_at', ['gte' => '2024-01-01']);
     }
 
-    public function testApplyDateNormalizesGtWithStartOfDay(): void
+    public function testApplyDateNormalizesGtWithEndOfDay(): void
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.created_at > ?', '2024-01-01 00:00:00');
+            ->with("main_table.created_at > '2024-01-01 23:59:59'");
 
         $this->subject->applyDate($this->selectMock, 'main_table.created_at', ['gt' => '2024-01-01']);
     }
@@ -366,7 +389,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.created_at = ?', '2024-01-01 00:00:00');
+            ->with("main_table.created_at = '2024-01-01 00:00:00'");
 
         $this->subject->applyDate($this->selectMock, 'main_table.created_at', ['eq' => '2024-01-01']);
     }
@@ -375,16 +398,16 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.created_at <= ?', '2024-01-31 23:59:59');
+            ->with("main_table.created_at <= '2024-01-31 23:59:59'");
 
         $this->subject->applyDate($this->selectMock, 'main_table.created_at', ['lte' => '2024-01-31']);
     }
 
-    public function testApplyDateNormalizesLtWithEndOfDay(): void
+    public function testApplyDateNormalizesLtWithStartOfDay(): void
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.created_at < ?', '2024-01-31 23:59:59');
+            ->with("main_table.created_at < '2024-01-31 00:00:00'");
 
         $this->subject->applyDate($this->selectMock, 'main_table.created_at', ['lt' => '2024-01-31']);
     }
@@ -393,7 +416,7 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.created_at >= ?', '2024-01-01 12:30:00');
+            ->with("main_table.created_at >= '2024-01-01 12:30:00'");
 
         $this->subject->applyDate($this->selectMock, 'main_table.created_at', ['gte' => '2024-01-01 12:30:00']);
     }
@@ -402,17 +425,15 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->exactly(2))
             ->method('where')
-            ->willReturnCallback(function ($condition, $value = null) {
+            ->willReturnCallback(function (string $condition) {
                 static $calls = [];
-                $calls[] = [$condition, $value];
+                $calls[] = $condition;
 
                 if (count($calls) === 1) {
-                    $this->assertEquals('main_table.created_at >= ?', $condition);
-                    $this->assertEquals('2024-01-01 00:00:00', $value);
+                    $this->assertEquals("main_table.created_at >= '2024-01-01 00:00:00'", $condition);
                 }
                 if (count($calls) === 2) {
-                    $this->assertEquals('main_table.created_at <= ?', $condition);
-                    $this->assertEquals('2024-01-31 23:59:59', $value);
+                    $this->assertEquals("main_table.created_at <= '2024-01-31 23:59:59'", $condition);
                 }
 
                 return $this->selectMock;
@@ -428,9 +449,8 @@ class ConditionApplierTest extends TestCase
     {
         $this->selectMock->expects($this->once())
             ->method('where')
-            ->with('main_table.created_at = ?', '2024-01-15');
+            ->with('main_table.created_at = ?', '2024-01-15 00:00:00');
 
-        // Simple value without operators - no normalization
         $this->subject->applyDate($this->selectMock, 'main_table.created_at', '2024-01-15');
     }
 
